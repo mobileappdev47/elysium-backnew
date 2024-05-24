@@ -31,13 +31,83 @@ const createQrData = asyncHandler(async (req, res) => {
                 meterqty,
                 rollqty,
                 inchsize,
-                user: user._id 
+                user: user._id
             });
 
             // Save the new Qrdata object
             await qrData.save();
             createdQrData.push(qrData);
         }
+
+        res.status(201).json({ success: true, code: 201, qrData: createdQrData });
+    } catch (error) {
+        res.status(400).json({ success: false, code: 400, error: error.message });
+    }
+});
+
+const createNewQrDataFromExisting = asyncHandler(async (req, res) => {
+    try {
+        const { id, uniqueid } = req.params; // Taking both id and uniqueid as parameters
+        const { meterqtyArray } = req.body; // Expecting an array of meterqty values in the request body
+        const user = req.admin;
+
+        // Check if meterqtyArray is an array
+        if (!Array.isArray(meterqtyArray)) {
+            return res.status(400).json({ success: false, code: 400, error: "Request body should contain an array of meterqty" });
+        }
+
+        // Find the existing Qrdata by id and uniqueid
+        const existingQrData = await Qrdata.findOne({ _id: id, uniqueid });
+
+        if (!existingQrData) {
+            return res.status(404).json({ success: false, code: 404, message: 'Qrdata not found' });
+        }
+
+        // Calculate the total of the new meterqty values
+        const totalNewMeterQty = meterqtyArray.reduce((total, qty) => total + qty, 0);
+
+        // Check if the total of new meterqty values does not exceed the existing meterqty
+        if (totalNewMeterQty > existingQrData.meterqty) {
+            return res.status(400).json({ success: false, code: 400, error: "Total of new meterqty values exceeds existing meterqty" });
+        }
+
+        const createdQrData = [];
+        let uniqueIdSuffix = 1;
+
+        // Process each meterqty value in the array
+        for (const meterqty of meterqtyArray) {
+            // Ensure the new data matches the conditions
+            if (existingQrData.productname === existingQrData.productname &&
+                existingQrData.description === existingQrData.description &&
+                existingQrData.inchsize === existingQrData.inchsize) {
+                
+                // Create a new Qrdata object with the provided meterqty and other details from the existing Qrdata
+                const newUniqueId = `${existingQrData.uniqueid}-${uniqueIdSuffix}`;
+                const qrData = new Qrdata({
+                    uniqueid: newUniqueId,
+                    date: existingQrData.date,
+                    qrcodeid: existingQrData.qrcodeid,
+                    jobcardnum: existingQrData.jobcardnum,
+                    basepaperid: existingQrData.basepaperid,
+                    productname: existingQrData.productname,
+                    description: existingQrData.description,
+                    meterqty,
+                    rollqty: existingQrData.rollqty,
+                    inchsize: existingQrData.inchsize,
+                    user: user._id
+                });
+
+                // Save the new Qrdata object
+                await qrData.save();
+                createdQrData.push(qrData);
+                uniqueIdSuffix++;
+            } else {
+                return res.status(400).json({ success: false, code: 400, error: "New Qrdata values do not match the required fields of existing Qrdata" });
+            }
+        }
+
+        // Delete the original Qrdata entry
+        await Qrdata.findOneAndDelete({ _id: id, uniqueid });
 
         res.status(201).json({ success: true, code: 201, qrData: createdQrData });
     } catch (error) {
@@ -310,38 +380,6 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
     }
 });
 
-const getAddstocks = asyncHandler(async (req, res) => {
-    try {
-        let stockQuery = {};
-
-        // Check if there are any query parameters
-        const queryParams = Object.keys(req.query);
-
-        // If there are query parameters, construct the query based on them
-        if (queryParams.length > 0) {
-            // Check if there's a query parameter for productname
-            if (req.query.productname) {
-                // Add productname to the query
-                stockQuery.productname = req.query.productname;
-            }
-            // Check if there's a query parameter for description
-            if (req.query.description) {
-                // Add description to the query
-                // Construct a case-insensitive search query for descriptions containing the provided string
-                stockQuery.description = { $regex: req.query.description, $options: 'i' };
-            }
-        }
-
-        // Add condition for either rollqty or meterqty not being zero
-
-        // Find products based on the constructed query
-        const addstocks = await Addstock.find(stockQuery); // Sort by updatedAt in descending order
-
-        res.status(200).json({ success: true, code: 200, addstocks });
-    } catch (error) {
-        res.status(400).json({ success: false, code: 400, error: error.message });
-    }
-});
 
 const generateExcelFile = async () => {
     try {
@@ -515,7 +553,7 @@ const deleteAllQrdata = asyncHandler(async (req, res) => {
 
 
 module.exports = {
-    createQrData, addQrDataFromExcel, createAddstockQrData, getAllQrData, getLastQrData, getAllQrProductNames,
+    createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getLastQrData, getAllQrProductNames,
     getSpecificProductData, generateExcelFile, getQrData, updateQrData, updateQrDataByUniqueId,
     incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata
 };

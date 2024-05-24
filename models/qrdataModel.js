@@ -48,6 +48,10 @@ const qrdataSchema = new mongoose.Schema(
         pandesraoffice: {
             type: Boolean,
         },
+        specificqr: {
+            type: Boolean,
+            default: false
+        },
         count: {
             type: Number,
             default: 0,

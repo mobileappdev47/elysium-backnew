@@ -7,6 +7,7 @@ const { createQrData, getAllQrData, getQrData, updateQrData, deleteQrData,
       getLastQrData,
       deleteAllQrdata} = require('../controllers/qrdataCtrl');
 const { authMiddleware } = require('../middlerwares/authMiddleware');
+const { createNewQrDataFromExisting } = require('../controllers/qrdataCtrl');
 
 const router = express.Router();
 
@@ -28,6 +29,7 @@ router.get('/download', authMiddleware, async (req, res) => {
     }
 });
 router.post('/create', authMiddleware, createQrData);
+router.post('/createcutroll/:uniqueid/:id', authMiddleware, createNewQrDataFromExisting);
 router.post('/fromexcel', authMiddleware, upload.single('file'), addQrDataFromExcel);
 router.post('/createaddstock', authMiddleware, createAddstockQrData)
 router.get('/getall', authMiddleware, getAllQrData);
