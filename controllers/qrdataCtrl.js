@@ -17,7 +17,7 @@ const createQrData = asyncHandler(async (req, res) => {
 
         // Process each entry in the array
         for (const data of qrDataArray) {
-            const { uniqueid, qrcodeid, date, jobcardnum, productname, description, meterqty, rollqty, inchsize, basepaperid } = data;
+            const { uniqueid, qrcodeid, date, jobcardnum, productname, description, meterqty, rollqty, inchsize, basepaperid, isspecificqr } = data;
 
             // Create a new Qrdata object and set the user reference
             const qrData = new Qrdata({
@@ -31,7 +31,8 @@ const createQrData = asyncHandler(async (req, res) => {
                 meterqty,
                 rollqty,
                 inchsize,
-                user: user._id
+                user: user._id,
+                isspecificqr
             });
 
             // Save the new Qrdata object
@@ -249,7 +250,7 @@ const createAddstockQrData = asyncHandler(async (req, res) => {
 const getAllQrData = asyncHandler(async (req, res) => {
     try {
         // Extracting the query parameters from the request
-        const { productname, description, inchsize, meterqty, date, jobcardnum, basepaperid } = req.query;
+        const { productname, description, inchsize, meterqty, date, jobcardnum, basepaperid, uniqueid } = req.query;
 
         let qrdataList;
 
@@ -275,6 +276,9 @@ const getAllQrData = asyncHandler(async (req, res) => {
         }
         if (basepaperid) {
             query.basepaperid = basepaperid;
+        }
+        if (uniqueid) {
+            query.uniqueid = uniqueid;
         }
 
         // Perform a search based on the constructed query
@@ -392,17 +396,26 @@ const generateExcelFile = async () => {
         }
 
         // Prepare the data for the worksheet
-        const jsonData = qrdata.map(data => ({
-            'uniqueid': data.uniqueid,
-            'date': data.date,
-            'jobcardnum': data.jobcardnum,
-            'ProductName': data.productname,
-            'Description': data.description,
-            'InchSize': data.inchsize,
-            'MeterQty': data.meterqty,
-            'RollQty': data.rollqty,
-            'TotalMtr': data.meterqty * data.rollqty, // Calculate total meter based on meterqty and rollqty
-        }));
+        const jsonData = qrdata.map(data => {
+            let location = '';
+            if (data.pandesraoffice) {
+                location = 'Pandesra Office';
+            } else if (data.palsanafactory) {
+                location = 'Palsana Factory';
+            }
+            return {
+                'uniqueid': data.uniqueid,
+                'date': data.date,
+                'jobcardnum': data.jobcardnum,
+                'ProductName': data.productname,
+                'Description': data.description,
+                'InchSize': data.inchsize,
+                'MeterQty': data.meterqty,
+                'RollQty': data.rollqty,
+                'TotalMtr': data.meterqty * data.rollqty, // Calculate total meter based on meterqty and rollqty
+                'Location': location // Add the location field
+            };
+        });
 
         // Create a new workbook and add the data
         const wb = xlsx.utils.book_new();
@@ -419,6 +432,7 @@ const generateExcelFile = async () => {
             { wch: 10 }, // MeterQty
             { wch: 10 }, // RollQty
             { wch: 15 }, // TotalMtr
+            { wch: 20 }  // Location
         ];
 
         // Add the worksheet to the workbook
@@ -435,7 +449,6 @@ const generateExcelFile = async () => {
     }
 };
 
-
 const getQrData = asyncHandler(async (req, res) => {
     try {
         const qrdata = await Qrdata.findById(req.params.id);
@@ -447,6 +460,7 @@ const getQrData = asyncHandler(async (req, res) => {
         res.status(500).json({ success: false, code: 500, error: error.message });
     }
 });
+
 
 const updateQrData = asyncHandler(async (req, res) => {
     try {

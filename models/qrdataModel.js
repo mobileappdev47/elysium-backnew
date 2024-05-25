@@ -48,7 +48,7 @@ const qrdataSchema = new mongoose.Schema(
         pandesraoffice: {
             type: Boolean,
         },
-        specificqr: {
+        isspecificqr: {
             type: Boolean,
             default: false
         },

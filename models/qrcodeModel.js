@@ -34,6 +34,10 @@ const qrcodeSchema = new mongoose.Schema(
         inchsize: {
             type: Number,
             required: true
+        },
+        isspecificqr: {
+            type: Boolean,
+            default: false
         }
     },
     {

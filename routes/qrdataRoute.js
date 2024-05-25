@@ -13,7 +13,7 @@ const router = express.Router();
 
 const upload = multer({ dest: 'uploads/' });
 
-router.get('/download', authMiddleware, async (req, res) => {
+router.get('/download', async (req, res) => {
     try {
         const excelBuffer = await generateExcelFile();
 
