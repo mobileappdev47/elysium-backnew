@@ -19,7 +19,7 @@ const qrdataSchema = new mongoose.Schema(
             // required: true,
         },
         basepaperid: {
-            type : String,
+            type: String,
         },
         productname: {
             type: String,
@@ -56,10 +56,27 @@ const qrdataSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        user : {
+        user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
-        }        
+        },
+        iscutroll: {
+            type: Boolean,
+            default: false
+        },
+        isnamechange: {
+            type: Boolean,
+            default: false
+        },
+        oldproductname: {
+            type: String
+        },
+        cutrolldate: {
+            type: String,
+        },
+        namechangedate: {
+            type: String
+        }
     },
     {
         timestamps: true,

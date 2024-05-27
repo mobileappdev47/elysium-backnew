@@ -107,8 +107,8 @@ const createNewQrDataFromExisting = asyncHandler(async (req, res) => {
             }
         }
 
-        // Delete the original Qrdata entry
-        await Qrdata.findOneAndDelete({ _id: id, uniqueid });
+        // Update the original Qrdata entry with iscutroll: true and cutrolldate to the current date
+        await Qrdata.findByIdAndUpdate(id, { iscutroll: true, cutrolldate: new Date() });
 
         res.status(201).json({ success: true, code: 201, qrData: createdQrData });
     } catch (error) {
@@ -464,11 +464,23 @@ const getQrData = asyncHandler(async (req, res) => {
 
 const updateQrData = asyncHandler(async (req, res) => {
     try {
-        const qrdata = await Qrdata.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!qrdata) {
+        // Fetch the existing Qrdata document
+        const existingQrData = await Qrdata.findById(req.params.id);
+        if (!existingQrData) {
             return res.status(404).json({ success: false, code: 404, message: 'Qrdata not found' });
         }
-        res.json({ success: true, code: 200, qrdata });
+
+        // Check if productname is being updated and differs from the existing one
+        if (req.body.productname && req.body.productname !== existingQrData.productname) {
+            req.body.isnamechange = true;
+            req.body.oldproductname = existingQrData.productname;
+            req.body.namechangedate = new Date();  // Set cutrolldate to the current date
+        }
+
+        // Update the Qrdata document with the new values
+        const updatedQrData = await Qrdata.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+        res.json({ success: true, code: 200, qrdata: updatedQrData });
     } catch (error) {
         res.status(500).json({ success: false, code: 500, error: error.message });
     }
