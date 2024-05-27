@@ -498,14 +498,20 @@ const updateQrDataByUniqueId = asyncHandler(async (req, res) => {
         // Update the specified fields for all documents that match the uniqueIds
         const result = await Qrdata.updateMany(
             { uniqueid: { $in: uniqueIds } }, // Filter by uniqueIds
-            { palsanafactory, pandesraoffice } // Update fields
+            { 
+                palsanafactory, 
+                pandesraoffice, 
+                islocation: true, 
+                locationdate: new Date() // Set locationdate to the current date
+            } 
         );
 
-        if (result === 0) {
+        // Check if any records were updated
+        if (result.nModified === 0) {
             return res.status(404).json({ success: false, code: 404, message: 'No records found to update' });
         }
 
-        res.json({ success: true, code: 200, message: `${result} records updated` });
+        res.json({ success: true, code: 200, message: `${result.nModified} records updated` });
     } catch (error) {
         res.status(500).json({ success: false, code: 500, error: error.message });
     }

@@ -10,6 +10,9 @@ const salesOrderSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        challannumber: {
+            type: String,
+        },
         customername: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Customername",

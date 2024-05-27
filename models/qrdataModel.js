@@ -76,6 +76,12 @@ const qrdataSchema = new mongoose.Schema(
         },
         namechangedate: {
             type: String
+        },
+        islocation: {
+            type: Boolean,
+        },
+        locationdate: {
+            type: String
         }
     },
     {

@@ -9,6 +9,7 @@ const createSalesOrder = asyncHandler(async (req, res) => {
     try {
         const {
             challandate,
+            challannumber,
             salesdate,
             customername,
             ordernumber,
@@ -22,6 +23,7 @@ const createSalesOrder = asyncHandler(async (req, res) => {
 
         const salesOrder = new SalesOrder({
             challandate,
+            challannumber,
             salesdate,
             customername,
             ordernumber,
