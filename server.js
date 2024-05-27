@@ -12,6 +12,7 @@ const qrcodeRouter = require('./routes/qrcodeRoute.js')
 const userRouter = require('./routes/userRoute')
 const qrdataRouter = require('./routes/qrdataRoute.js')
 const addstockRouter = require('./routes/addstockRoute.js')
+const salesorderRouter = require('./routes/salesorderRoute.js')
 dbConnect();
 
 app.use((req, res, next) => {
@@ -38,6 +39,7 @@ app.use('/api/user', userRouter)
 app.use('/api/qrcode', qrcodeRouter)
 app.use('/api/qrdata', qrdataRouter)
 app.use('/api/addstock', addstockRouter)
+app.use('/api/salesorder', salesorderRouter)
 
 
 
