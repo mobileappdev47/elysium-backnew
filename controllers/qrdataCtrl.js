@@ -328,10 +328,10 @@ const getAggregatedQrData = asyncHandler(async (req, res) => {
                         inchsize: "$inchsize",
                         meterqty: "$meterqty",
                         description: "$description",
-                        pandesraoffice: "$pandesraoffice",
-                        palsanafactory: "$palsanafactory"
+                        palsanafactory: "$palsanafactory",
+                        pandesraoffice: "$pandesraoffice"
                     },
-                    rollqty: { $sum: 1 }, // Count occurrences
+                    rollqty: { $sum: "$rollqty" }, // Sum rollqty
                 },
             },
             {
@@ -341,7 +341,9 @@ const getAggregatedQrData = asyncHandler(async (req, res) => {
                     inchsize: "$_id.inchsize",
                     meterqty: "$_id.meterqty",
                     description: "$_id.description",
-                    rollqty: 1, // Include the count field
+                    palsanafactory: "$_id.palsanafactory", // Include palsanafactory
+                    pandesraoffice: "$_id.pandesraoffice", // Include pandesraoffice
+                    rollqty: 1, // Include the sum of rollqty
                 },
             },
         ]);
@@ -354,8 +356,8 @@ const getAggregatedQrData = asyncHandler(async (req, res) => {
                     description: product.description,
                     inchsize: product.inchsize,
                     meterqty: product.meterqty,
-                    palsanafactory: product.location === "palsanafactory",
-                    pandesraoffice: product.location === "pandesraoffice"
+                    palsanafactory: product.palsanafactory,
+                    pandesraoffice: product.pandesraoffice
                 },
                 {
                     $inc: { rollqty: product.rollqty }, // Increment rollqty by rollqty from aggregation
@@ -402,7 +404,7 @@ const getLastQrData = asyncHandler(async (req, res) => {
     }
 });
 
-getSpecificProductData = asyncHandler(async (req, res) => {
+const getSpecificProductData = asyncHandler(async (req, res) => {
     try {
         // Aggregate the data based on the specified fields
         const aggregatedData = await Qrdata.aggregate([
@@ -416,7 +418,7 @@ getSpecificProductData = asyncHandler(async (req, res) => {
                         pandesraoffice: "$pandesraoffice",
                         palsanafactory: "$palsanafactory"
                     },
-                    totalRollQty: { $sum: "$rollqty" },
+                    totalRollQty: { $sum: "$rollqty" }
                 }
             },
             {
@@ -439,7 +441,7 @@ getSpecificProductData = asyncHandler(async (req, res) => {
                             }
                         ]
                     },
-                    totalRollQty: "$_id.rollqty"
+                    totalRollQty: 1
                 }
             },
             {
