@@ -331,7 +331,7 @@ const getAggregatedQrData = asyncHandler(async (req, res) => {
                         palsanafactory: "$palsanafactory",
                         pandesraoffice: "$pandesraoffice"
                     },
-                    rollqty: { $sum: "$rollqty" }, // Sum rollqty
+                    rollqty: { $sum: 1 }, // Sum rollqty
                 },
             },
             {
@@ -366,7 +366,7 @@ const getAggregatedQrData = asyncHandler(async (req, res) => {
             );
         }
 
-        res.status(201).json({ success: true, code: 201, message: "Addstock created/updated successfully." });
+        res.status(201).json({ success: true, code: 201, message: "Addstock created/updated successfully.", aggregatedData: aggregatedData });
     } catch (error) {
         res.status(500).json({ success: false, code: 500, error: error.message });
     }
@@ -413,40 +413,26 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                     _id: {
                         productname: "$productname",
                         inchsize: "$inchsize",
-                        description: "$description",
                         meterqty: "$meterqty",
-                        pandesraoffice: "$pandesraoffice",
-                        palsanafactory: "$palsanafactory"
+                        description: "$description",
+                        palsanafactory: "$palsanafactory",
+                        pandesraoffice: "$pandesraoffice"
                     },
-                    totalRollQty: { $sum: "$rollqty" }
-                }
+                    rollqty: { $sum: 1 }, // Sum rollqty
+                },
             },
             {
                 $project: {
                     _id: 0,
                     productname: "$_id.productname",
                     inchsize: "$_id.inchsize",
-                    description: "$_id.description",
                     meterqty: "$_id.meterqty",
-                    location: {
-                        $cond: [
-                            { $eq: ["$_id.pandesraoffice", true] },
-                            "pandesraoffice",
-                            {
-                                $cond: [
-                                    { $eq: ["$_id.palsanafactory", true] },
-                                    "palsanafactory",
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    totalRollQty: 1
-                }
+                    description: "$_id.description",
+                    palsanafactory: "$_id.palsanafactory", // Include palsanafactory
+                    pandesraoffice: "$_id.pandesraoffice", // Include pandesraoffice
+                    rollqty: 1, // Include the sum of rollqty
+                },
             },
-            {
-                $match: { location: { $ne: null } }
-            }
         ]);
 
         // Iterate over the aggregated data and create or update Addstock documents
@@ -457,22 +443,17 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                     description: product.description,
                     inchsize: product.inchsize,
                     meterqty: product.meterqty,
-                    palsanafactory: product.location === "palsanafactory",
-                    pandesraoffice: product.location === "pandesraoffice"
+                    palsanafactory: product.palsanafactory,
+                    pandesraoffice: product.pandesraoffice
                 },
                 {
-                    $inc: { rollqty: product.totalRollQty }, // Increment rollqty by totalRollQty
-                    $set: { totalmtr: product.totalRollQty * product.meterqty }, // Set totalmtr
-                    $setOnInsert: { // Set default values only on insert
-                        palsanafactory: product.location === "palsanafactory",
-                        pandesraoffice: product.location === "pandesraoffice"
-                    }
+                    $inc: { rollqty: product.rollqty }, // Increment rollqty by rollqty from aggregation
                 },
                 { upsert: true } // Create a new document if no matching one is found
             );
         }
 
-        res.status(201).json({ success: true, code: 201, message: "Addstock created/updated successfully." });
+        res.status(201).json({ success: true, code: 201, message: "Addstock created/updated successfully.", aggregatedData: aggregatedData });
     } catch (error) {
         res.status(500).json({ success: false, code: 500, error: error.message });
     }

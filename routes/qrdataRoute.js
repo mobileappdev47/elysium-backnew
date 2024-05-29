@@ -34,7 +34,7 @@ router.post('/createcutroll/:uniqueid/:id', authMiddleware, createNewQrDataFromE
 router.post('/fromexcel', authMiddleware, upload.single('file'), addQrDataFromExcel);
 router.post('/createaddstock', authMiddleware, createAddstockQrData)
 router.get('/getall', authMiddleware, getAllQrData);
-router.get('/getstockall', authMiddleware, getAggregatedQrData)
+router.get('/getstockall', authMiddleware, getAggregatedQrData);
 router.get('/getlast', authMiddleware, getLastQrData);
 router.get('/getproduct', authMiddleware, getSpecificProductData);
 router.get('/productname', authMiddleware, getAllQrProductNames)
