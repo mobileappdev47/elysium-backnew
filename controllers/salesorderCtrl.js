@@ -55,9 +55,11 @@ const getSalesOrders = asyncHandler(async (req, res) => {
             query.dispatch = status;
         }
 
+        // Fetch sales orders with sorting by creation date in descending order
         const salesOrders = await SalesOrder.find(query)
             .populate('salesperson')
             .populate('customername')
+            .sort({ createdAt: -1 }); // -1 for descending order
 
         res.status(200).json({ success: true, code: 200, salesOrders });
     } catch (error) {

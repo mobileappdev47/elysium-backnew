@@ -44,9 +44,11 @@ const qrdataSchema = new mongoose.Schema(
         },
         palsanafactory: {
             type: Boolean,
+            default: true
         },
         pandesraoffice: {
             type: Boolean,
+            default: false
         },
         isspecificqr: {
             type: Boolean,
@@ -79,6 +81,7 @@ const qrdataSchema = new mongoose.Schema(
         },
         islocation: {
             type: Boolean,
+            default: false
         },
         locationdate: {
             type: String

@@ -448,7 +448,7 @@ const deleteAllAddstock = asyncHandler( async(req, res) => {
         if (deletionResult.deletedCount > 0) {
             res.json({ success: true, message: 'All data cleared from Addstock model' });
         } else {
-            res.status(404).json({ success: false, message: 'No data found in Addstock model' });
+            res.status(200).json({ success: true, message: 'No data found in Addstock model' });
         }
     } catch (error) {
         console.error("Error clearing data from Addstock model:", error);

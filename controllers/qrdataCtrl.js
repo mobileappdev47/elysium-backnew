@@ -81,7 +81,7 @@ const createNewQrDataFromExisting = asyncHandler(async (req, res) => {
             if (existingQrData.productname === existingQrData.productname &&
                 existingQrData.description === existingQrData.description &&
                 existingQrData.inchsize === existingQrData.inchsize) {
-                
+
                 // Create a new Qrdata object with the provided meterqty and other details from the existing Qrdata
                 const newUniqueId = `${existingQrData.uniqueid}-${uniqueIdSuffix}`;
                 const qrData = new Qrdata({
@@ -93,7 +93,7 @@ const createNewQrDataFromExisting = asyncHandler(async (req, res) => {
                     productname: existingQrData.productname,
                     description: existingQrData.description,
                     meterqty,
-                    rollqty: existingQrData.rollqty,
+                    rollqty: 1,
                     inchsize: existingQrData.inchsize,
                     user: user._id
                 });
@@ -252,10 +252,8 @@ const getAllQrData = asyncHandler(async (req, res) => {
         // Extracting the query parameters from the request
         const { productname, description, inchsize, meterqty, date, jobcardnum, basepaperid, uniqueid } = req.query;
 
-        let qrdataList;
-
         // Construct the query object based on the provided query parameters
-        const query = {};
+        const query = { iscutroll: { $ne: true } }; // Exclude documents where iscutroll is true
         if (productname) {
             query.productname = productname;
         }
@@ -278,16 +276,104 @@ const getAllQrData = asyncHandler(async (req, res) => {
             query.basepaperid = basepaperid;
         }
         if (uniqueid) {
-            query.uniqueid = uniqueid;
+            query.uniqueid = { $regex: new RegExp(uniqueid) }; // Match uniqueid pattern
         }
 
         // Perform a search based on the constructed query
-        qrdataList = await Qrdata.find(query).populate({
-            path: 'user', // Specify the field to populate
-            select: 'firstname _id' // Specify the fields to include
-        });
+        let qrdataList = await Qrdata.find(query)
+            .populate({
+                path: 'user', // Specify the field to populate
+                select: 'firstname _id' // Specify the fields to include
+            });
+
+        // Custom sort function for uniqueid
+        qrdataList = qrdataList.sort((a, b) => {
+            const uniqueIdA = a.uniqueid.split('-');
+            const uniqueIdB = b.uniqueid.split('-');
+
+            for (let i = 0; i < uniqueIdA.length; i++) {
+                const partA = uniqueIdA[i];
+                const partB = uniqueIdB[i];
+
+                // Compare numeric parts numerically and string parts lexicographically
+                if (!isNaN(partA) && !isNaN(partB)) {
+                    const numA = parseInt(partA, 10);
+                    const numB = parseInt(partB, 10);
+                    if (numA !== numB) {
+                        return numA - numB;
+                    }
+                } else {
+                    if (partA !== partB) {
+                        return partA.localeCompare(partB);
+                    }
+                }
+            }
+            return 0;
+        }).reverse(); // Reverse the sorted array to get the opposite order
 
         res.json({ success: true, code: 200, qrdataList });
+    } catch (error) {
+        res.status(500).json({ success: false, code: 500, error: error.message });
+    }
+});
+
+const getAggregatedQrData = asyncHandler(async (req, res) => {
+    try {
+        // Extracting the query parameters from the request
+        const { productname, description, inchsize, meterqty, palsanafactory, pandesraoffice } = req.query;
+
+        // Construct the match object based on the provided query parameters
+        const match = { iscutroll: { $ne: true } }; // Exclude documents where iscutroll is true
+        if (productname) {
+            match.productname = productname;
+        }
+        if (description) {
+            match.description = description;
+        }
+        if (inchsize) {
+            match.inchsize = inchsize;
+        }
+        if (meterqty) {
+            match.meterqty = meterqty;
+        }
+        if (palsanafactory !== undefined) {
+            match.palsanafactory = palsanafactory === 'true'; // Convert string to boolean
+        }
+        if (pandesraoffice !== undefined) {
+            match.pandesraoffice = pandesraoffice === 'true'; // Convert string to boolean
+        }
+
+        // Aggregate the data based on the specified fields and sum the rollqty
+        const aggregatedData = await Qrdata.aggregate([
+            { $match: match },
+            {
+                $group: {
+                    _id: {
+                        productname: "$productname",
+                        inchsize: "$inchsize",
+                        description: "$description",
+                        meterqty: "$meterqty",
+                        palsanafactory: "$palsanafactory",
+                        pandesraoffice: "$pandesraoffice"
+                    },
+                    totalRollQty: { $sum: "$rollqty" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    productname: "$_id.productname",
+                    inchsize: "$_id.inchsize",
+                    description: "$_id.description",
+                    meterqty: "$_id.meterqty",
+                    palsanafactory: "$_id.palsanafactory",
+                    pandesraoffice: "$_id.pandesraoffice",
+                    totalRollQty: "$totalRollQty"
+                }
+            }
+        ]);
+
+        res.json({ success: true, code: 200, aggregatedData });
     } catch (error) {
         res.status(500).json({ success: false, code: 500, error: error.message });
     }
@@ -324,7 +410,8 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                         pandesraoffice: "$pandesraoffice",
                         palsanafactory: "$palsanafactory"
                     },
-                    totalRollQty: { $sum: "$rollqty" }
+                    totalRollQty: { $sum: "$rollqty" },
+                    maxRollQty: { $max: "$rollqty" }
                 }
             },
             {
@@ -347,13 +434,22 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                             }
                         ]
                     },
-                    totalRollQty: 1
+                    totalRollQty: {
+                        $cond: {
+                            if: { $gt: ["$totalRollQty", 1] },
+                            then: "$maxRollQty",
+                            else: "$totalRollQty"
+                        }
+                    }
                 }
             },
             {
                 $match: { location: { $ne: null } }
             }
         ]);
+
+        // Log the aggregated data
+        console.log('Aggregated Data:', aggregatedData);
 
         // Iterate over the aggregated data and create or update Addstock documents
         for (const product of aggregatedData) {
@@ -363,8 +459,8 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                     description: product.description,
                     inchsize: product.inchsize,
                     meterqty: product.meterqty,
-                    palsanafactory: product.location === "palsanafactory",
-                    pandesraoffice: product.location === "pandesraoffice"
+                    // palsanafactory: product.location === "palsanafactory",
+                    // pandesraoffice: product.location === "pandesraoffice"
                 },
                 {
                     $inc: { rollqty: product.totalRollQty }, // Increment rollqty by totalRollQty
@@ -378,9 +474,26 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
             );
         }
 
-        res.status(201).json({ success: true, code: 201, message: "Addstock created/updated successfully." });
+        // Fetch all Addstock documents
+        const allAddstock = await Addstock.find({});
+
+        // Log all Addstock documents
+        console.log('All Addstock:', allAddstock);
+
+        // Respond with success, the aggregated data, and all Addstock documents
+        res.status(201).json({
+            success: true,
+            code: 201,
+            message: "Addstock created/updated successfully.",
+            aggregatedData: aggregatedData,
+            allAddstock: allAddstock
+        });
     } catch (error) {
-        res.status(500).json({ success: false, code: 500, error: error.message });
+        res.status(500).json({
+            success: false,
+            code: 500,
+            error: error.message
+        });
     }
 });
 
@@ -498,12 +611,12 @@ const updateQrDataByUniqueId = asyncHandler(async (req, res) => {
         // Update the specified fields for all documents that match the uniqueIds
         const result = await Qrdata.updateMany(
             { uniqueid: { $in: uniqueIds } }, // Filter by uniqueIds
-            { 
-                palsanafactory, 
-                pandesraoffice, 
-                islocation: true, 
+            {
+                palsanafactory,
+                pandesraoffice,
+                islocation: true,
                 locationdate: new Date() // Set locationdate to the current date
-            } 
+            }
         );
 
         // Check if any records were updated
@@ -585,7 +698,7 @@ const deleteAllQrdata = asyncHandler(async (req, res) => {
 
 
 module.exports = {
-    createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getLastQrData, getAllQrProductNames,
+    createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getAggregatedQrData, getLastQrData, getAllQrProductNames,
     getSpecificProductData, generateExcelFile, getQrData, updateQrData, updateQrDataByUniqueId,
     incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata
 };

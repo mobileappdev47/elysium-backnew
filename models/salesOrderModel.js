@@ -12,6 +12,7 @@ const salesOrderSchema = new mongoose.Schema(
         },
         challannumber: {
             type: String,
+            required: true
         },
         customername: {
             type: mongoose.Schema.Types.ObjectId,
