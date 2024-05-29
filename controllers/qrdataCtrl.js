@@ -319,61 +319,52 @@ const getAllQrData = asyncHandler(async (req, res) => {
 
 const getAggregatedQrData = asyncHandler(async (req, res) => {
     try {
-        // Extracting the query parameters from the request
-        const { productname, description, inchsize, meterqty, palsanafactory, pandesraoffice } = req.query;
-
-        // Construct the match object based on the provided query parameters
-        const match = { iscutroll: { $ne: true } }; // Exclude documents where iscutroll is true
-        if (productname) {
-            match.productname = productname;
-        }
-        if (description) {
-            match.description = description;
-        }
-        if (inchsize) {
-            match.inchsize = inchsize;
-        }
-        if (meterqty) {
-            match.meterqty = meterqty;
-        }
-        if (palsanafactory !== undefined) {
-            match.palsanafactory = palsanafactory === 'true'; // Convert string to boolean
-        }
-        if (pandesraoffice !== undefined) {
-            match.pandesraoffice = pandesraoffice === 'true'; // Convert string to boolean
-        }
-
-        // Aggregate the data based on the specified fields and sum the rollqty
+        // Aggregate the data based on the specified fields
         const aggregatedData = await Qrdata.aggregate([
-            { $match: match },
             {
                 $group: {
                     _id: {
                         productname: "$productname",
                         inchsize: "$inchsize",
-                        description: "$description",
                         meterqty: "$meterqty",
-                        palsanafactory: "$palsanafactory",
-                        pandesraoffice: "$pandesraoffice"
+                        description: "$description",
+                        pandesraoffice: "$pandesraoffice",
+                        palsanafactory: "$palsanafactory"
                     },
-                    totalRollQty: { $sum: "$rollqty" }
-                }
+                    rollqty: { $sum: 1 }, // Count occurrences
+                },
             },
             {
                 $project: {
                     _id: 0,
                     productname: "$_id.productname",
                     inchsize: "$_id.inchsize",
-                    description: "$_id.description",
                     meterqty: "$_id.meterqty",
-                    palsanafactory: "$_id.palsanafactory",
-                    pandesraoffice: "$_id.pandesraoffice",
-                    totalRollQty: "$totalRollQty"
-                }
-            }
+                    description: "$_id.description",
+                    rollqty: 1, // Include the count field
+                },
+            },
         ]);
 
-        res.json({ success: true, code: 200, aggregatedData });
+        // Iterate over the aggregated data and create or update Addstock documents
+        for (const product of aggregatedData) {
+            await Addstock.findOneAndUpdate(
+                {
+                    productname: product.productname,
+                    description: product.description,
+                    inchsize: product.inchsize,
+                    meterqty: product.meterqty,
+                    palsanafactory: product.location === "palsanafactory",
+                    pandesraoffice: product.location === "pandesraoffice"
+                },
+                {
+                    $inc: { rollqty: product.rollqty }, // Increment rollqty by rollqty from aggregation
+                },
+                { upsert: true } // Create a new document if no matching one is found
+            );
+        }
+
+        res.status(201).json({ success: true, code: 201, message: "Addstock created/updated successfully." });
     } catch (error) {
         res.status(500).json({ success: false, code: 500, error: error.message });
     }
@@ -381,12 +372,27 @@ const getAggregatedQrData = asyncHandler(async (req, res) => {
 
 const getLastQrData = asyncHandler(async (req, res) => {
     try {
-        // Find the last created QR data
-        const qrdata = await Qrdata.findOne({}).sort({ createdAt: -1 });
+        // Fetch all QR data sorted by creation date in descending order
+        let qrdataList = await Qrdata.find({}).sort({ createdAt: -1 });
 
-        if (!qrdata) {
+        if (!qrdataList.length) {
             // If no QR data found, return an appropriate response
             return res.status(404).json({ success: false, code: 404, message: "No QR data found" });
+        }
+
+        // Iterate through the sorted list and find the first valid entry
+        let qrdata = null;
+        for (const data of qrdataList) {
+            const suffix = parseInt(data.uniqueid.split('-').pop(), 10);
+            if (suffix !== 1 && suffix !== 2) {
+                qrdata = data;
+                break;
+            }
+        }
+
+        if (!qrdata) {
+            // If no valid QR data found, return an appropriate response
+            return res.status(404).json({ success: false, code: 404, message: "No valid QR data found" });
         }
 
         res.json({ success: true, code: 200, qrdata });
@@ -396,7 +402,7 @@ const getLastQrData = asyncHandler(async (req, res) => {
     }
 });
 
-const getSpecificProductData = asyncHandler(async (req, res) => {
+getSpecificProductData = asyncHandler(async (req, res) => {
     try {
         // Aggregate the data based on the specified fields
         const aggregatedData = await Qrdata.aggregate([
@@ -411,7 +417,6 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                         palsanafactory: "$palsanafactory"
                     },
                     totalRollQty: { $sum: "$rollqty" },
-                    maxRollQty: { $max: "$rollqty" }
                 }
             },
             {
@@ -434,22 +439,13 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                             }
                         ]
                     },
-                    totalRollQty: {
-                        $cond: {
-                            if: { $gt: ["$totalRollQty", 1] },
-                            then: "$maxRollQty",
-                            else: "$totalRollQty"
-                        }
-                    }
+                    totalRollQty: "$_id.rollqty"
                 }
             },
             {
                 $match: { location: { $ne: null } }
             }
         ]);
-
-        // Log the aggregated data
-        console.log('Aggregated Data:', aggregatedData);
 
         // Iterate over the aggregated data and create or update Addstock documents
         for (const product of aggregatedData) {
@@ -459,8 +455,8 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
                     description: product.description,
                     inchsize: product.inchsize,
                     meterqty: product.meterqty,
-                    // palsanafactory: product.location === "palsanafactory",
-                    // pandesraoffice: product.location === "pandesraoffice"
+                    palsanafactory: product.location === "palsanafactory",
+                    pandesraoffice: product.location === "pandesraoffice"
                 },
                 {
                     $inc: { rollqty: product.totalRollQty }, // Increment rollqty by totalRollQty
@@ -474,28 +470,13 @@ const getSpecificProductData = asyncHandler(async (req, res) => {
             );
         }
 
-        // Fetch all Addstock documents
-        const allAddstock = await Addstock.find({});
-
-        // Log all Addstock documents
-        console.log('All Addstock:', allAddstock);
-
-        // Respond with success, the aggregated data, and all Addstock documents
-        res.status(201).json({
-            success: true,
-            code: 201,
-            message: "Addstock created/updated successfully.",
-            aggregatedData: aggregatedData,
-            allAddstock: allAddstock
-        });
+        res.status(201).json({ success: true, code: 201, message: "Addstock created/updated successfully." });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            code: 500,
-            error: error.message
-        });
+        res.status(500).json({ success: false, code: 500, error: error.message });
     }
 });
+
+
 
 
 const generateExcelFile = async () => {

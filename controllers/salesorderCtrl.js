@@ -8,8 +8,6 @@ const Qrdata = require("../models/qrdataModel")
 const createSalesOrder = asyncHandler(async (req, res) => {
     try {
         const {
-            challandate,
-            challannumber,
             salesdate,
             customername,
             ordernumber,
@@ -22,8 +20,6 @@ const createSalesOrder = asyncHandler(async (req, res) => {
         } = req.body;
 
         const salesOrder = new SalesOrder({
-            challandate,
-            challannumber,
             salesdate,
             customername,
             ordernumber,

@@ -4,7 +4,6 @@ const salesOrderSchema = new mongoose.Schema(
     {
         challandate: {
             type: String,
-            required: true,
         },
         salesdate: {
             type: String,
@@ -12,7 +11,6 @@ const salesOrderSchema = new mongoose.Schema(
         },
         challannumber: {
             type: String,
-            required: true
         },
         customername: {
             type: mongoose.Schema.Types.ObjectId,
