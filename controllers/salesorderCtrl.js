@@ -104,6 +104,23 @@ const getLastSalesOrder = asyncHandler(async (req, res) => {
     }
 });
 
+const getLastUpdatedCRTPendingOrder  = asyncHandler(async (req, res) => {
+    try {
+        // Find the last sales order
+        const lastSalesOrder = await SalesOrder.findOne({package: 'CRT Pending'})
+            .sort({ createdAt: -1 }) // Sort by createdAt date in descending order
+
+        // Check if a sales order exists
+        if (!lastSalesOrder) {
+            return res.status(404).json({ success: false, code: 404, message: "No sales orders found" });
+        }
+
+        // Return the last sales order
+        res.status(200).json({ success: true, code: 200, lastSalesOrder });
+    } catch (error) {
+        res.status(400).json({ success: false, code: 400, error: error.message });
+    }
+});
 
 const updateSalesOrder = asyncHandler(async (req, res) => {
     try {
@@ -247,7 +264,7 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
 
         const originalDispatch = salesOrder.dispatch;
         salesOrder.dispatch = updatedFields.dispatch;
-        if (originalDispatch !== "Done" && updatedFields.dispatch === "Done") {
+        if (originalDispatch !== "Order Closed" && updatedFields.dispatch === "Order Closed") {
             const salesProduct = salesOrder.products;
             const salesQrProduct = salesOrder.qualityqrs;
             const uniqueIds = salesQrProduct.map(product => product.uniqueid);
@@ -397,4 +414,5 @@ const deleteSalesOrder = asyncHandler(async (req, res) => {
 });
 
 
-module.exports = { createSalesOrder, getSalesOrders, getSingleSalesOrder, getLastSalesOrder, updateSalesOrder, doneUpdateSalesOrder, updateSalesOrderCrt, deleteSalesOrder }
+module.exports = { createSalesOrder, getSalesOrders, getSingleSalesOrder, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
+     updateSalesOrder, doneUpdateSalesOrder, updateSalesOrderCrt, deleteSalesOrder }
