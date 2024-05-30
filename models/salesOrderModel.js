@@ -28,7 +28,7 @@ const salesOrderSchema = new mongoose.Schema(
         package: {
             type: String,
             default: "CRT PKG",
-            enum: ["CRT PKG", "Done"]
+            enum: ["CRT PKG", "CRT Pending", "PKG Done"]
         },
         products: [{
             productname: {
@@ -55,8 +55,8 @@ const salesOrderSchema = new mongoose.Schema(
         }],
         dispatch: {
             type: String,
-            default: "Draft",
-            enum: ["Draft", "Done", "Pending", "Cancel", "Hold"]
+            default: "Save as Draft",
+            enum: ["Save as Draft", "Part Order Pending","Order Closed"]
         },
         customernotes: {
             type: String,

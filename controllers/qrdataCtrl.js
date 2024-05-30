@@ -267,7 +267,7 @@ const getAllQrData = asyncHandler(async (req, res) => {
             query.meterqty = meterqty;
         }
         if (date) {
-            query.date = date;
+            query.date = { $regex: new RegExp(date) }; // Match uniqueid pattern
         }
         if (jobcardnum) {
             query.jobcardnum = jobcardnum;
