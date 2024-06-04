@@ -7,6 +7,7 @@ const Qrdata = require("../models/qrdataModel")
 
 const createSalesOrder = asyncHandler(async (req, res) => {
     try {
+        const user = req.admin;
         const {
             salesdate,
             customername,
@@ -28,7 +29,8 @@ const createSalesOrder = asyncHandler(async (req, res) => {
             dispatch,
             customernotes,
             totalroll,
-            totalmeter
+            totalmeter,
+            user: user._id
         });
 
         await salesOrder.save();
@@ -53,11 +55,40 @@ const getSalesOrders = asyncHandler(async (req, res) => {
 
         // Fetch sales orders with sorting by creation date in descending order
         const salesOrders = await SalesOrder.find(query)
+            .populate({
+                path: 'user', // Specify the field to populate
+                select: 'firstname _id' // Specify the fields to include
+            })
             .populate('salesperson')
             .populate('customername')
             .sort({ createdAt: -1 }); // -1 for descending order
 
         res.status(200).json({ success: true, code: 200, salesOrders });
+    } catch (error) {
+        res.status(400).json({ success: false, code: 400, error: error.message });
+    }
+});
+
+const getCustomerNamesAndIds = asyncHandler(async (req, res) => {
+    try {
+        // Fetch all sales orders
+        const salesOrders = await SalesOrder.find({})
+            .populate('customername')
+            .select('customername -_id');
+
+        // Extract unique customer names and IDs
+        const uniqueCustomers = {};
+
+        salesOrders.forEach(order => {
+            const customer = order.customername;
+            if (customer && !uniqueCustomers[customer._id]) {
+                uniqueCustomers[customer._id] = { id: customer._id, name: customer.customername };
+            }
+        });
+
+        const customerArray = Object.values(uniqueCustomers);
+
+        res.status(200).json({ success: true, code: 200, customers: customerArray });
     } catch (error) {
         res.status(400).json({ success: false, code: 400, error: error.message });
     }
@@ -104,10 +135,10 @@ const getLastSalesOrder = asyncHandler(async (req, res) => {
     }
 });
 
-const getLastUpdatedCRTPendingOrder  = asyncHandler(async (req, res) => {
+const getLastUpdatedCRTPendingOrder = asyncHandler(async (req, res) => {
     try {
         // Find the last sales order
-        const lastSalesOrder = await SalesOrder.findOne({package: 'CRT Pending'})
+        const lastSalesOrder = await SalesOrder.findOne({ package: 'CRT Pending' })
             .sort({ createdAt: -1 }) // Sort by createdAt date in descending order
 
         // Check if a sales order exists
@@ -264,67 +295,65 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
 
         const originalDispatch = salesOrder.dispatch;
         salesOrder.dispatch = updatedFields.dispatch;
-        if (originalDispatch !== "Order Closed" && updatedFields.dispatch === "Order Closed") {
-            const salesProduct = salesOrder.products;
-            const salesQrProduct = salesOrder.qualityqrs;
-            const uniqueIds = salesQrProduct.map(product => product.uniqueid);
-            const roll = salesProduct.map(roll => roll.rollqty);
-            const total = roll.reduce((acc, current) => acc + current, 0);
 
-            if (salesQrProduct.length === total) {
-                // Initialize an array to store matched products
-                const matchedProducts = [];
-                // Iterate over each product in salesProduct
-                for (const product of salesProduct) {
-                    // Find all products in salesQrProduct that match the conditions
-                    const matchingQrProducts = salesQrProduct.filter(qrProduct => {
-                        return (
-                            qrProduct.productName?.toLowerCase() === product.productname?.toLowerCase() &&
-                            parseFloat(qrProduct.inchsize) === product.inchsize &&
-                            parseFloat(qrProduct.meterqty) === product.meterqty
-                        );
+        let deletedQrData = [];
+
+        if (originalDispatch !== "Order Closed" && updatedFields.dispatch === "Order Closed") {
+            const uniqueIds = salesOrder.qualityqrs.map(qrProduct => qrProduct.uniqueid);
+
+            // Check roll quantity
+            for (const product of salesOrder.products) {
+                const productQrEntries = salesOrder.qualityqrs.filter(qr => qr.productName === product.productname);
+
+                if (product.rollqty !== productQrEntries.length) {
+                    return res.status(400).json({
+                        success: false,
+                        code: 400,
+                        message: `Product roll quantity mismatch for product: ${product.productname}`
                     });
-                    // If matches are found, add description from salesProduct and push them into the matchedProducts array
-                    if (matchingQrProducts.length > 0) {
-                        matchingQrProducts.forEach(matchedProduct => {
-                            // Add description from salesProduct to matchedProduct
-                            matchedProduct.productName = product.productname;
-                            matchedProduct.description = product.description;
-                        });
-                        matchedProducts.push(...matchingQrProducts);
-                    }
                 }
-                // Delete matching documents from Qrdata model
-                for (const matchedProduct of matchedProducts) {
-                    const { meterqty, inchsize, description, productName, uniqueid } = matchedProduct;
-                    const qr = await Qrdata.findOne({
-                        productname: productName,
-                        description: description,
-                        inchsize: parseFloat(inchsize), // Convert inchsize to number
-                        meterqty: parseFloat(meterqty), // Convert meterqty to number
-                        uniqueid: uniqueid
-                    });
-                    if (!qr) {
-                        throw new Error(`QR data not found for product: ${productName}`);
-                    }
-                    const deletionResult = await Qrdata.deleteOne({
-                        productname: productName,
-                        description: description,
-                        inchsize: parseFloat(inchsize), // Convert inchsize to number
-                        meterqty: parseFloat(meterqty), // Convert meterqty to number
-                        uniqueid: uniqueid
-                    });
-                    if (!deletionResult.deletedCount) {
-                        throw new Error(`Failed to delete QR data for product: ${productName}`);
-                    }
+            }
+
+            // Compare the products with the sales order qualityqrs
+            const mismatchedProducts = [];
+            for (const qrProduct of salesOrder.qualityqrs) {
+                const product = salesOrder.products.find(p =>
+                    p.productname === qrProduct.productName &&
+                    p.inchsize.toString() === qrProduct.inchsize &&
+                    p.meterqty.toString() === qrProduct.meterqty
+                );
+
+                if (!product) {
+                    mismatchedProducts.push(qrProduct.uniqueid);
                 }
-                // Save changes to the salesOrder
+            }
+
+            if (mismatchedProducts.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: `Product mismatch found for unique IDs: ${mismatchedProducts.join(', ')}`
+                });
+            }
+
+            // Find QR data to be deleted
+            deletedQrData = await Qrdata.find({
+                uniqueid: { $in: uniqueIds }
+            });
+
+            // Delete the QR data
+            const deletionResult = await Qrdata.deleteMany({
+                uniqueid: { $in: uniqueIds }
+            });
+
+            if (!deletionResult.deletedCount) {
+                throw new Error("Failed to delete QR data");
             }
         }
+
         await salesOrder.save();
 
-        // Send response
-        res.json({ success: true, code: 200 });
+        res.json({ success: true, code: 200, message: "Sales Order updated and QR data deleted", deletedQrData });
     } catch (error) {
         console.error("Error updating sales order:", error);
         res.status(500).json({ success: false, error: error.message });
@@ -399,6 +428,39 @@ const updateSalesOrderCrt = asyncHandler(async (req, res) => {
 //     }
 // });
 
+const deletePendingProduct = asyncHandler(async (req, res) => {
+    const { orderId, qualityId } = req.params;
+
+    try {
+        const salesOrder = await SalesOrder.findById(orderId);
+
+        if (!salesOrder) {
+            return res.status(404).send({ success: false, code: 404, error: 'SalesOrder not found' });
+        }
+
+        // Find the index of the pendingquality item to remove
+        const qualityIndex = salesOrder.pendingquality.findIndex(
+            (item) => item._id.toString() === qualityId
+        );
+
+        if (qualityIndex === -1) {
+            return res.status(404).send({ success: false, code: 404, error: 'Pending quality item not found' });
+        }
+
+        // Remove the item from the array
+        const removedItem = salesOrder.pendingquality.splice(qualityIndex, 1)[0];
+
+        // Add the removed item to the cancelpending array
+        salesOrder.cancelpending.push(removedItem);
+
+        // Save the updated sales order
+        await salesOrder.save();
+
+        res.status(200).send({ success: true, code: 200, message: 'Pending quality item removed and added to cancelpending', salesOrder });
+    } catch (error) {
+        res.status(500).send({ success: false, code: 500, error: 'An error occurred', details: error.message });
+    }
+});
 
 const deleteSalesOrder = asyncHandler(async (req, res) => {
     try {
@@ -414,5 +476,7 @@ const deleteSalesOrder = asyncHandler(async (req, res) => {
 });
 
 
-module.exports = { createSalesOrder, getSalesOrders, getSingleSalesOrder, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
-     updateSalesOrder, doneUpdateSalesOrder, updateSalesOrderCrt, deleteSalesOrder }
+module.exports = {
+    createSalesOrder, getSalesOrders, getCustomerNamesAndIds, getSingleSalesOrder, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
+    updateSalesOrder, doneUpdateSalesOrder, updateSalesOrderCrt, deletePendingProduct, deleteSalesOrder
+}

@@ -15,6 +15,7 @@ const addstockRouter = require('./routes/addstockRoute.js')
 const salesorderRouter = require('./routes/salesorderRoute.js')
 const customernameRouter = require('./routes/customernameRoute.js')
 const salespersonRouter = require('./routes/salespersonRoute.js')
+const grreturnsRouter = require('./routes/grreturnsRoute')
 dbConnect();
 
 app.use((req, res, next) => {
@@ -44,7 +45,7 @@ app.use('/api/addstock', addstockRouter)
 app.use('/api/salesorder', salesorderRouter)
 app.use('/api/customername', customernameRouter)
 app.use('/api/salesperson', salespersonRouter)
-
+app.use('/api/grreturns', grreturnsRouter)
 
 
 

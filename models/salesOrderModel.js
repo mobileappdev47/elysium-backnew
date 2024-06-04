@@ -56,7 +56,7 @@ const salesOrderSchema = new mongoose.Schema(
         dispatch: {
             type: String,
             default: "Save as Draft",
-            enum: ["Save as Draft", "Part Order Pending","Order Closed"]
+            enum: ["Save as Draft", "Part Order Pending", "Order Confirm", "Order Closed"]
         },
         customernotes: {
             type: String,
@@ -74,7 +74,14 @@ const salesOrderSchema = new mongoose.Schema(
         }],
         qualityqrs: [{
             type: Object,
-        }]
+        }],
+        cancelpending: [{
+            type: Object
+        }],
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
     },
     {
         timestamps: true,

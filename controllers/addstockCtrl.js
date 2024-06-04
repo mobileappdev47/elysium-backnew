@@ -184,10 +184,16 @@ const getAddstocks = asyncHandler(async (req, res) => {
 
 const getAvailableAddstocks = asyncHandler(async (req, res) => {
     try {
-        const products = req.body;
+        const products = req.body || [];
 
+        // If products is not an array, set it to an empty array
         if (!Array.isArray(products)) {
             return res.status(400).json({ success: false, message: "Products should be provided as an array" });
+        }
+
+        // If the products array is empty, return a default response
+        if (products.length === 0) {
+            return res.status(200).json({ success: true, code: 200, response: [] });
         }
 
         const productQueries = products.map(product => ({
@@ -441,7 +447,7 @@ const deleteAddstock = asyncHandler(async (req, res) => {
     }
 });
 
-const deleteAllAddstock = asyncHandler( async(req, res) => {
+const deleteAllAddstock = asyncHandler(async (req, res) => {
     try {
         // Use deleteMany() to clear all data from the Addstock collection
         const deletionResult = await Addstock.deleteMany({});

@@ -66,6 +66,10 @@ const qrdataSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+        cutrolls: {
+            type: Boolean,
+            default: false
+        },
         isnamechange: {
             type: Boolean,
             default: false
@@ -91,7 +95,6 @@ const qrdataSchema = new mongoose.Schema(
         timestamps: true,
     }
 );
-
 
 
 module.exports = mongoose.model("Qrdata", qrdataSchema);

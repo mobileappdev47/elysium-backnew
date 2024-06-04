@@ -95,7 +95,8 @@ const createNewQrDataFromExisting = asyncHandler(async (req, res) => {
                     meterqty,
                     rollqty: 1,
                     inchsize: existingQrData.inchsize,
-                    user: user._id
+                    user: user._id,
+                    cutrolls: true
                 });
 
                 // Save the new Qrdata object
@@ -250,7 +251,8 @@ const createAddstockQrData = asyncHandler(async (req, res) => {
 const getAllQrData = asyncHandler(async (req, res) => {
     try {
         // Extracting the query parameters from the request
-        const { productname, description, inchsize, meterqty, date, jobcardnum, basepaperid, uniqueid } = req.query;
+        const { productname, description, inchsize, meterqty, date, jobcardnum,
+            basepaperid, uniqueid, cutrolls, isnamechange, isspecificqr, palsanafactory, pandesraoffice } = req.query;
 
         // Construct the query object based on the provided query parameters
         const query = { iscutroll: { $ne: true } }; // Exclude documents where iscutroll is true
@@ -267,7 +269,7 @@ const getAllQrData = asyncHandler(async (req, res) => {
             query.meterqty = meterqty;
         }
         if (date) {
-            query.date = { $regex: new RegExp(date) }; // Match uniqueid pattern
+            query.date = { $regex: new RegExp(date) }; // Match date pattern
         }
         if (jobcardnum) {
             query.jobcardnum = jobcardnum;
@@ -277,6 +279,25 @@ const getAllQrData = asyncHandler(async (req, res) => {
         }
         if (uniqueid) {
             query.uniqueid = { $regex: new RegExp(uniqueid) }; // Match uniqueid pattern
+        }
+
+        // Add boolean fields to the query if they are present in the request
+        if (typeof cutrolls !== 'undefined') {
+            query.cutrolls = cutrolls === 'true';
+        }
+        if (typeof isnamechange !== 'undefined') {
+            query.isnamechange = isnamechange === 'true';
+        }
+        if (typeof isspecificqr !== 'undefined') {
+            query.isspecificqr = isspecificqr === 'true';
+        }
+
+        if (typeof palsanafactory !== 'undefined') {
+            query.palsanafactory = palsanafactory === 'true';
+        }
+
+        if (typeof pandesraoffice !== 'undefined') {
+            query.pandesraoffice = pandesraoffice === 'true';
         }
 
         // Perform a search based on the constructed query
