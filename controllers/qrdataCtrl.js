@@ -256,49 +256,32 @@ const getAllQrData = asyncHandler(async (req, res) => {
 
         // Construct the query object based on the provided query parameters
         const query = { iscutroll: { $ne: true } }; // Exclude documents where iscutroll is true
-        if (productname) {
-            query.productname = productname;
-        }
-        if (description) {
-            query.description = description;
-        }
-        if (inchsize) {
-            query.inchsize = inchsize;
-        }
-        if (meterqty) {
-            query.meterqty = meterqty;
-        }
-        if (date) {
-            query.date = { $regex: new RegExp(date) }; // Match date pattern
-        }
-        if (jobcardnum) {
-            query.jobcardnum = jobcardnum;
-        }
-        if (basepaperid) {
-            query.basepaperid = basepaperid;
-        }
+        
+        // Add fields to the query if they are present in the request
+        if (productname) query.productname = productname;
+        if (description) query.description = description;
+        if (inchsize) query.inchsize = inchsize;
+        if (meterqty) query.meterqty = meterqty;
+        if (date) query.date = { $regex: new RegExp(date) }; // Match date pattern
+        if (jobcardnum) query.jobcardnum = jobcardnum;
+        if (basepaperid) query.basepaperid = basepaperid;
+
+        // Handle uniqueid with regex for multiple fields
         if (uniqueid) {
-            query.uniqueid = { $regex: new RegExp(uniqueid) }; // Match uniqueid pattern
+            query.$or = [
+                { uniqueid: { $regex: new RegExp(uniqueid, 'i') } },
+                { jobcardnum: { $regex: new RegExp(uniqueid, 'i') } },
+                { basepaperid: { $regex: new RegExp(uniqueid, 'i') } },
+                { productname: { $regex: new RegExp(uniqueid, 'i') } }
+            ];
         }
 
         // Add boolean fields to the query if they are present in the request
-        if (typeof cutrolls !== 'undefined') {
-            query.cutrolls = cutrolls === 'true';
-        }
-        if (typeof isnamechange !== 'undefined') {
-            query.isnamechange = isnamechange === 'true';
-        }
-        if (typeof isspecificqr !== 'undefined') {
-            query.isspecificqr = isspecificqr === 'true';
-        }
-
-        if (typeof palsanafactory !== 'undefined') {
-            query.palsanafactory = palsanafactory === 'true';
-        }
-
-        if (typeof pandesraoffice !== 'undefined') {
-            query.pandesraoffice = pandesraoffice === 'true';
-        }
+        if (typeof cutrolls !== 'undefined') query.cutrolls = cutrolls === 'true';
+        if (typeof isnamechange !== 'undefined') query.isnamechange = isnamechange === 'true';
+        if (typeof isspecificqr !== 'undefined') query.isspecificqr = isspecificqr === 'true';
+        if (typeof palsanafactory !== 'undefined') query.palsanafactory = palsanafactory === 'true';
+        if (typeof pandesraoffice !== 'undefined') query.pandesraoffice = pandesraoffice === 'true';
 
         // Perform a search based on the constructed query
         let qrdataList = await Qrdata.find(query)

@@ -296,8 +296,6 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
         const originalDispatch = salesOrder.dispatch;
         salesOrder.dispatch = updatedFields.dispatch;
 
-        let deletedQrData = [];
-
         if (originalDispatch !== "Order Closed" && updatedFields.dispatch === "Order Closed") {
             const uniqueIds = salesOrder.qualityqrs.map(qrProduct => qrProduct.uniqueid);
 
@@ -336,24 +334,43 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
                 });
             }
 
+            console.log(uniqueIds, 'uniqueid');
+
             // Find QR data to be deleted
-            deletedQrData = await Qrdata.find({
+            let qrDataToDelete = await Qrdata.find({
                 uniqueid: { $in: uniqueIds }
             });
+
+            console.log("QR Data to be deleted:", qrDataToDelete);
+
+            // Filter unique QR data entries
+            const uniqueQrDataMap = new Map();
+            qrDataToDelete.forEach(qrData => {
+                uniqueQrDataMap.set(qrData.uniqueid, qrData);
+            });
+            qrDataToDelete = Array.from(uniqueQrDataMap.values());
+
+            console.log("Filtered unique QR Data:", qrDataToDelete);
 
             // Delete the QR data
-            const deletionResult = await Qrdata.deleteMany({
-                uniqueid: { $in: uniqueIds }
-            });
+            const deleteResult = await Qrdata.deleteMany(
+                { uniqueid: { $in: uniqueIds } }
+            );
 
-            if (!deletionResult.deletedCount) {
+            console.log("Delete result:", deleteResult);
+
+            if (deleteResult.deletedCount === 0) {
                 throw new Error("Failed to delete QR data");
             }
+
+            // Add only the unique deleted QR data to orderedproduct in salesOrder
+            salesOrder.orderedproduct = salesOrder.orderedproduct.concat(qrDataToDelete);
+
         }
 
-        await salesOrder.save();
+        const doneOrder = await salesOrder.save();
 
-        res.json({ success: true, code: 200, message: "Sales Order updated and QR data deleted", deletedQrData });
+        res.json({ success: true, code: 200, message: "Sales Order updated and QR data deleted and added to orderedproduct", doneOrder });
     } catch (error) {
         console.error("Error updating sales order:", error);
         res.status(500).json({ success: false, error: error.message });

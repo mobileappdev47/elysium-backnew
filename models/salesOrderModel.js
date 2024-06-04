@@ -78,6 +78,12 @@ const salesOrderSchema = new mongoose.Schema(
         cancelpending: [{
             type: Object
         }],
+        cancelreason: {
+            type: String,
+        },
+        orderedproduct: [{
+            type: Object
+        }],
         user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'

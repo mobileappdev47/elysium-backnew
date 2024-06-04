@@ -89,6 +89,10 @@ const qrdataSchema = new mongoose.Schema(
         },
         locationdate: {
             type: String
+        },
+        orderdone: {
+            type: Boolean,
+            default: false
         }
     },
     {
