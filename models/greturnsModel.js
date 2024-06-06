@@ -42,6 +42,10 @@ const greturnsSchema = new mongoose.Schema(
         totalmtr: {
             type: String,
         },
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
     },
     {
         timestamps: true,
