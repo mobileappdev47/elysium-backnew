@@ -16,19 +16,55 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        qualityupdate: {
+        generalqr: {
             type: Boolean,
             required: true,
         },
-        qrprint: {
+        specificqr: {
             type: Boolean,
             required: true,
         },
-        salesorder: {
+        qrdatamaster: {
             type: Boolean,
             required: true,
         },
-        stockupdate: {
+        duplicateqr: {
+            type: Boolean,
+            required: true,
+        },
+        cuttingroll: {
+            type: Boolean,
+            required: true,
+        },
+        namechangeqr: {
+            type: Boolean,
+            required: true,
+        },
+        grprint: {
+            type: Boolean,
+            required: true,
+        },
+        availablestock: {
+            type: Boolean,
+            required: true,
+        },
+        locationchange: {
+            type: Boolean,
+            required: true,
+        },
+        addquality: {
+            type: Boolean,
+            required: true,
+        },
+        allsalesorder: {
+            type: Boolean,
+            required: true,
+        },
+        orderdispatch: {
+            type: Boolean,
+            required: true,
+        },
+        orderpending: {
             type: Boolean,
             required: true,
         },

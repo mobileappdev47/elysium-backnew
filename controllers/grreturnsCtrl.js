@@ -32,6 +32,21 @@ const getGrreturns = asyncHandler(async (req, res) => {
     }
 });
 
+const getLastGrnumber = asyncHandler(async (req, res) => {
+    try {
+        // Find the last created Grreturns document
+        const lastGrreturn = await Grreturns.findOne().sort({ createdAt: -1 });
+
+        if (!lastGrreturn) {
+            return res.status(404).json({ success: false, code: 404, message: "No Grreturns found" });
+        }
+
+        res.status(200).json({ success: true, code: 200, grnumber: lastGrreturn });
+    } catch (err) {
+        res.status(500).json({ success: false, code: 500, message: err.message });
+    }
+});
+
 const getAGrreturns = asyncHandler(async (req, res) => {
     try {
         const grreturn = await Grreturns.findById(req.params.id).populate({
@@ -47,4 +62,4 @@ const getAGrreturns = asyncHandler(async (req, res) => {
     }
 })
 
-module.exports = { createGrretuns, getGrreturns, getAGrreturns }
+module.exports = { createGrretuns, getGrreturns, getLastGrnumber, getAGrreturns }
