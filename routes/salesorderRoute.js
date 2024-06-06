@@ -22,7 +22,7 @@ router.put('/dispatch/:id', authMiddleware, doneUpdateSalesOrder);
 router.put('/updatecrt/:id', authMiddleware, updateSalesOrderCrt);
 router.delete('/del-pending/:orderId/:qualityId', authMiddleware, deletePendingProduct);
 router.delete('/delete/:id', authMiddleware, deleteSalesOrder);
-router.get('/getgr', authMiddleware, getSalesFromUniquid)
+router.post('/getgr', authMiddleware, getSalesFromUniquid)
 // router.put('/updateoldstock/:id', updateOldStockSalesOrder)
 router.get('/download', async (req, res) => {
     try {

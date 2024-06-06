@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
         },
         qrdatamaster: {
             type: Boolean,
-            required: true,
+            // required: true,
         },
         duplicateqr: {
             type: Boolean,

@@ -169,12 +169,23 @@ const getAddstocks = asyncHandler(async (req, res) => {
                 // Add meterqty to the query
                 stockQuery.meterqty = req.query.meterqty;
             }
+            // Check if there's a query parameter for palsanafactory
+            if (req.query.palsanafactory) {
+                // Add palsanafactory to the query and convert to boolean
+                stockQuery.palsanafactory = req.query.palsanafactory === 'true';
+            }
+            // Check if there's a query parameter for pandesraoffice
+            if (req.query.pandesraoffice) {
+                // Add pandesraoffice to the query and convert to boolean
+                stockQuery.pandesraoffice = req.query.pandesraoffice === 'true';
+            }
         }
 
         // Add condition for either rollqty or meterqty not being zero
+        // Example: stockQuery.$or = [{ rollqty: { $ne: 0 } }, { meterqty: { $ne: 0 } }];
 
         // Find products based on the constructed query
-        const addstocks = await Addstock.find(stockQuery); // Sort by updatedAt in descending order
+        const addstocks = await Addstock.find(stockQuery).sort({ updatedAt: -1 });
 
         res.status(200).json({ success: true, code: 200, addstocks });
     } catch (error) {
