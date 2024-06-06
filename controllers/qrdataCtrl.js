@@ -259,7 +259,7 @@ const getAllQrData = asyncHandler(async (req, res) => {
         
         // Add fields to the query if they are present in the request
         if (productname) query.productname = productname;
-        if (description) query.description = description;
+        if (description) query.description = { $regex: new RegExp(description, 'i') };
         if (inchsize) query.inchsize = inchsize;
         if (meterqty) query.meterqty = meterqty;
         if (date) query.date = { $regex: new RegExp(date) }; // Match date pattern
@@ -280,8 +280,8 @@ const getAllQrData = asyncHandler(async (req, res) => {
         if (typeof cutrolls !== 'undefined') query.cutrolls = cutrolls === 'true';
         if (typeof isnamechange !== 'undefined') query.isnamechange = isnamechange === 'true';
         if (typeof isspecificqr !== 'undefined') query.isspecificqr = isspecificqr === 'true';
-        if (typeof palsanafactory !== 'undefined') query.palsanafactory = palsanafactory === 'true';
-        if (typeof pandesraoffice !== 'undefined') query.pandesraoffice = pandesraoffice === 'true';
+        if (typeof palsanafactory !== 'undefined') query.palsanafactory = palsanafactory;
+        if (typeof pandesraoffice !== 'undefined') query.pandesraoffice = pandesraoffice;
 
         // Perform a search based on the constructed query
         let qrdataList = await Qrdata.find(query)

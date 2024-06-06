@@ -4,9 +4,9 @@ const Grreturns = require('../models/greturnsModel')
 const createGrretuns = asyncHandler (async (req, res) => {
     try {
         const newGrreturn = await Grreturns.create(req.body);
-        res.json(newGrreturn);
+        res.json({success: true, code: 201, newGrreturn});
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ success: false, code: 400, message: err.message });
     }
 })
 

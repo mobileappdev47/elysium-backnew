@@ -3,7 +3,7 @@ const SalesOrder = require('../models/salesOrderModel')
 const Addstock = require('../models/addStockModel');
 // const Oldstock = require("../models/oldStockModel");
 const Qrdata = require("../models/qrdataModel")
-
+const xlsx = require('xlsx')
 
 const createSalesOrder = asyncHandler(async (req, res) => {
     try {
@@ -69,6 +69,91 @@ const getSalesOrders = asyncHandler(async (req, res) => {
     }
 });
 
+
+const generateExcelFile = async () => {
+    try {
+        // Fetch data from SalesOrder model
+        const salesOrders = await SalesOrder.find().populate('customername salesperson').sort({ updatedAt: -1 });
+
+        // If no data found, throw an error
+        if (!salesOrders || salesOrders.length === 0) {
+            throw new Error('No data found');
+        }
+
+        // Prepare the data for the worksheet
+        let jsonData = [];
+
+        salesOrders.forEach(order => {
+            order.products.forEach(product => {
+                for (let i = 0; i < product.rollqty; i++) {
+                    jsonData.push({
+                        'Order Number': order.ordernumber,
+                        'Sales Date': order.salesdate,
+                        'Challan Date': order.challandate,
+                        'Challan Number': order.challannumber,
+                        'Customer Name': order.customername.customername ? order.customername.customername : '', // Assuming customer name is stored in the 'name' field
+                        'Salesperson': order.salesperson.salesname ? order.salesperson.salesname : '', // Assuming salesperson name is stored in the 'name' field
+                        'Product Name': product.productname,
+                        'Description': product.description,
+                        'Inch Size': product.inchsize,
+                        'Roll Quantity': 1, // Each entry represents one roll
+                        'Meter Quantity': product.meterqty,
+                        'Total Meters': product.meterqty,
+                        'Package': order.package,
+                        'Dispatch': order.dispatch,
+                        'Customer Notes': order.customernotes,
+                        'Total Roll': order.totalroll,
+                        'Total Meter': order.totalmeter,
+                        'Cancel Reason': order.cancelreason,
+                        'Created At': order.createdAt,
+                        'Updated At': order.updatedAt
+                    });
+                }
+            });
+        });
+
+        // Create a new workbook and add the data
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.json_to_sheet(jsonData);
+
+        // Set column headers
+        ws['!cols'] = [
+            { wch: 20 }, // Order Number
+            { wch: 20 }, // Sales Date
+            { wch: 20 }, // Challan Date
+            { wch: 20 }, // Challan Number
+            { wch: 30 }, // Customer Name
+            { wch: 30 }, // Salesperson
+            { wch: 30 }, // Product Name
+            { wch: 30 }, // Description
+            { wch: 10 }, // Inch Size
+            { wch: 10 }, // Roll Quantity
+            { wch: 15 }, // Meter Quantity
+            { wch: 15 }, // Total Meters
+            { wch: 20 }, // Package
+            { wch: 20 }, // Dispatch
+            { wch: 30 }, // Customer Notes
+            { wch: 15 }, // Total Roll
+            { wch: 15 }, // Total Meter
+            { wch: 30 }, // Cancel Reason
+            { wch: 30 }, // Created At
+            { wch: 30 }, // Updated At
+        ];
+
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(wb, ws, 'Sales Orders');
+
+        // Write the workbook to a buffer
+        const excelBuffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        return excelBuffer;
+    } catch (error) {
+        // Log the error for debugging
+        console.error(error);
+        throw new Error('Failed to generate Excel file');
+    }
+};
+
 const getCustomerNamesAndIds = asyncHandler(async (req, res) => {
     try {
         // Fetch all sales orders
@@ -112,6 +197,36 @@ const getSingleSalesOrder = asyncHandler(async (req, res) => {
         res.status(200).json({ success: true, code: 200, salesOrder });
     } catch (error) {
         res.status(400).json({ success: false, code: 400, error: error.message });
+    }
+});
+
+const getSalesFromUniquid = asyncHandler(async (req, res) => {
+    try {
+        const uniqueid = req.params.uniqueid;
+
+        // Find the first sales order that contains the uniqueid in their orderedproduct array
+        const order = await SalesOrder.findOne({ "orderedproduct.uniqueid": uniqueid }).populate('customername');
+
+        if (!order) {
+            return res.status(404).json({ success: false, code: 404, message: "No orders found with the given uniqueid" });
+        }
+
+        // Extract the orderedproduct details with the specific uniqueid
+        const productDetails = order.orderedproduct.find(product => product.uniqueid === uniqueid);
+
+        if (!productDetails) {
+            return res.status(404).json({ success: false, code: 404, message: "No product found with the given uniqueid" });
+        }
+
+        const orderDetails = {
+            ...productDetails, // Spread product details
+            partyname: order.customername // Adjust this if your customername schema is different
+        };
+
+        res.json({ success: true, code: 200, orderDetails });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, code: 500, message: "Server error" });
     }
 });
 
@@ -494,6 +609,6 @@ const deleteSalesOrder = asyncHandler(async (req, res) => {
 
 
 module.exports = {
-    createSalesOrder, getSalesOrders, getCustomerNamesAndIds, getSingleSalesOrder, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
+    createSalesOrder, getSalesOrders, generateExcelFile, getCustomerNamesAndIds, getSingleSalesOrder, getSalesFromUniquid, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
     updateSalesOrder, doneUpdateSalesOrder, updateSalesOrderCrt, deletePendingProduct, deleteSalesOrder
 }
