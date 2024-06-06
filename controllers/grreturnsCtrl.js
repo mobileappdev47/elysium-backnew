@@ -11,7 +11,11 @@ const createGrretuns = asyncHandler(async (req, res) => {
         };
 
         // Create the new Grreturn with the modified request body
-        const newGrreturn = await Grreturns.create(newGrreturnData);
+        let newGrreturn = await Grreturns.create(newGrreturnData);
+
+        // Populate the user and partyname fields
+        newGrreturn = await Grreturns.findById(newGrreturn._id).populate('user', 'firstname _id').populate('partyname', 'customername _id');
+
         res.status(201).json({ success: true, code: 201, newGrreturn });
     } catch (err) {
         res.status(400).json({ success: false, code: 400, message: err.message });
@@ -20,11 +24,11 @@ const createGrretuns = asyncHandler(async (req, res) => {
 
 const getGrreturns = asyncHandler(async (req, res) => {
     try {
-        // Populate the user field
+        // Populate both the user and partyname fields
         const grreturns = await Grreturns.find().populate({
             path: 'user',
             select: 'firstname _id'
-        });
+        }).populate('partyname', 'customername _id');
 
         res.status(200).json({ success: true, code: 200, grreturns });
     } catch (err) {
@@ -52,7 +56,7 @@ const getAGrreturns = asyncHandler(async (req, res) => {
         const grreturn = await Grreturns.findById(req.params.id).populate({
             path: 'user',
             select: 'firstname _id'
-        });
+        }).populate('partyname', 'customername _id');
         if (grreturn === null) {
             return res.status(404).json({ success: false, code: 404, message: 'Document not found' });
         }

@@ -202,28 +202,35 @@ const getSingleSalesOrder = asyncHandler(async (req, res) => {
 
 const getSalesFromUniquid = asyncHandler(async (req, res) => {
     try {
-        const uniqueid = req.params.uniqueid;
+        const uniqueids = req.body.uniqueids;
 
-        // Find the first sales order that contains the uniqueid in their orderedproduct array
-        const order = await SalesOrder.findOne({ "orderedproduct.uniqueid": uniqueid }).populate('customername');
-
-        if (!order) {
-            return res.status(404).json({ success: false, code: 404, message: "No orders found with the given uniqueid" });
+        if (!Array.isArray(uniqueids) || uniqueids.length === 0) {
+            return res.status(400).json({ success: false, code: 400, message: "Invalid or empty uniqueids array" });
         }
 
-        // Extract the orderedproduct details with the specific uniqueid
-        const productDetails = order.orderedproduct.find(product => product.uniqueid === uniqueid);
+        // Collect order details for each uniqueid
+        const results = await Promise.all(uniqueids.map(async uniqueid => {
+            const order = await SalesOrder.findOne({ "orderedproduct.uniqueid": uniqueid }).populate('customername');
+            if (order) {
+                const productDetails = order.orderedproduct.find(product => product.uniqueid === uniqueid);
+                if (productDetails) {
+                    return {
+                        ...productDetails, // Spread product details
+                        partyname: order.customername // Adjust this if your customername schema is different
+                    };
+                }
+            }
+            return null; // Return null if no order or product found
+        }));
 
-        if (!productDetails) {
-            return res.status(404).json({ success: false, code: 404, message: "No product found with the given uniqueid" });
+        // Filter out null results
+        const filteredResults = results.filter(result => result !== null);
+
+        if (filteredResults.length === 0) {
+            return res.status(404).json({ success: false, code: 404, message: "No orders found with the given uniqueids" });
         }
 
-        const orderDetails = {
-            ...productDetails, // Spread product details
-            partyname: order.customername // Adjust this if your customername schema is different
-        };
-
-        res.json({ success: true, code: 200, orderDetails });
+        res.json({ success: true, code: 200, orderDetails: filteredResults });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, code: 500, message: "Server error" });

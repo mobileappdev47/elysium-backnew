@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const greturnsSchema = new mongoose.Schema(
     {
         partyname: {
-            type: String,
-            required: true
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Customername'
         },
         uniqueid: {
             type: String,
