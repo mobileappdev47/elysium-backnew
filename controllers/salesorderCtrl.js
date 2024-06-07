@@ -4,6 +4,7 @@ const Addstock = require('../models/addStockModel');
 // const Oldstock = require("../models/oldStockModel");
 const Qrdata = require("../models/qrdataModel")
 const xlsx = require('xlsx')
+const mongoose = require('mongoose')
 
 const createSalesOrder = asyncHandler(async (req, res) => {
     try {
@@ -234,6 +235,78 @@ const getSalesFromUniquid = asyncHandler(async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, code: 500, message: "Server error" });
+    }
+});
+
+const getSalesWithCancelPending = asyncHandler(async (req, res) => {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "Invalid input, expected a non-empty array of IDs" });
+    }
+
+    try {
+        const results = await Promise.all(ids.map(async id => {
+            const order = await SalesOrder.findOne({ "cancelpending._id": id })
+                .populate('customername')  // Populate customername field
+                .populate('salesperson'); // Populate salesperson field
+
+            if (order) {
+                const productDetails = order.cancelpending.find(product => product._id.toString() === id.toString());
+                if (productDetails) {
+                    return {
+                        ...productDetails, // Spread product details
+                        customername: order.customername, // Include populated customer name
+                        salesperson: order.salesperson // Include populated sales person
+                    };
+                }
+            }
+            return null; // Return null if no order or product found
+        }));
+
+        res.status(200).json({ success: true, code: 200, results: results.filter(result => result !== null) });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, code: 500, error: "Internal server error" });
+    }
+});
+
+const checkSameSalesOrder = asyncHandler(async (req, res) => {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids)) {
+        return res.status(400).json({ error: "Invalid input, expected an array of IDs" });
+    }
+
+    try {
+        // Fetch all orders that contain any of the provided IDs in the cancelpending array
+        const orders = await SalesOrder.find({ "cancelpending._id": { $in: ids } });
+
+        if (orders.length === 0) {
+            return res.status(404).json({ success: false, code: 404 });
+        }
+
+        // Create a map to count the occurrence of each order ID
+        const orderMap = new Map();
+        
+        orders.forEach(order => {
+            order.cancelpending.forEach(product => {
+                if (ids.includes(product._id)) {
+                    if (!orderMap.has(order._id)) {
+                        orderMap.set(order._id, new Set());
+                    }
+                    orderMap.get(order._id).add(product._id);
+                }
+            });
+        });
+
+        // Check if all ids are from the same order
+        const isSameOrder = [...orderMap.values()].some(productSet => ids.every(id => productSet.has(id)));
+
+        res.status(200).json({ success: true, code: 200, sameOrder: isSameOrder });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, code: 500, error: "Internal server error" });
     }
 });
 
@@ -616,6 +689,7 @@ const deleteSalesOrder = asyncHandler(async (req, res) => {
 
 
 module.exports = {
-    createSalesOrder, getSalesOrders, generateExcelFile, getCustomerNamesAndIds, getSingleSalesOrder, getSalesFromUniquid, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
+    createSalesOrder, getSalesOrders, generateExcelFile, getCustomerNamesAndIds, getSingleSalesOrder, getSalesFromUniquid, getSalesWithCancelPending,
+    checkSameSalesOrder, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
     updateSalesOrder, doneUpdateSalesOrder, updateSalesOrderCrt, deletePendingProduct, deleteSalesOrder
 }

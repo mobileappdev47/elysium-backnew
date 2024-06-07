@@ -239,7 +239,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 const getAllUser = asyncHandler(async (req, res) => {
     try {
         // Fetch users with role "user" from the database
-        const users = await User.find({ role: 'user' });
+        const users = await User.find({ role: 'user' }).sort({ createdAt: -1 });
 
         res.json(users);
     } catch (error) {

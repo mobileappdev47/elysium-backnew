@@ -5,7 +5,9 @@ const { createSalesOrder, getSalesOrders, updateSalesOrder, deleteSalesOrder,
     getCustomerNamesAndIds, 
     deletePendingProduct,
     generateExcelFile,
-    getSalesFromUniquid} = require('../controllers/salesorderCtrl');
+    getSalesFromUniquid,
+    getSalesWithCancelPending,
+    checkSameSalesOrder} = require('../controllers/salesorderCtrl');
 const { authMiddleware } = require('../middlerwares/authMiddleware');
 
 const router = express.Router();
@@ -23,6 +25,8 @@ router.put('/updatecrt/:id', authMiddleware, updateSalesOrderCrt);
 router.delete('/del-pending/:orderId/:qualityId', authMiddleware, deletePendingProduct);
 router.delete('/delete/:id', authMiddleware, deleteSalesOrder);
 router.post('/getgr', authMiddleware, getSalesFromUniquid)
+router.post('/getcancelpending', authMiddleware, getSalesWithCancelPending)
+router.post('/checksamepending', authMiddleware, checkSameSalesOrder)
 // router.put('/updateoldstock/:id', updateOldStockSalesOrder)
 router.get('/download', async (req, res) => {
     try {
