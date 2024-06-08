@@ -46,12 +46,21 @@ const getSalesOrders = asyncHandler(async (req, res) => {
     try {
         let query = {};
 
-        // Check if there's a query parameter for status
-        const { status } = req.query;
+        // Extract query parameters
+        const { dispatch, customername, package, ordernumber } = req.query;
 
-        // If status is provided, add it to the query
-        if (status) {
-            query.dispatch = status;
+        // Add parameters to the query object if they are provided
+        if (dispatch) {
+            query.dispatch = dispatch;
+        }
+        if (customername) {
+            query.customername = customername;
+        }
+        if (package) {
+            query.package = package;
+        }
+        if (ordernumber) {
+            query.ordernumber = ordernumber;
         }
 
         // Fetch sales orders with sorting by creation date in descending order
@@ -529,14 +538,10 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
                 });
             }
 
-            console.log(uniqueIds, 'uniqueid');
-
             // Find QR data to be deleted
             let qrDataToDelete = await Qrdata.find({
                 uniqueid: { $in: uniqueIds }
             });
-
-            console.log("QR Data to be deleted:", qrDataToDelete);
 
             // Filter unique QR data entries
             const uniqueQrDataMap = new Map();
@@ -545,14 +550,10 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
             });
             qrDataToDelete = Array.from(uniqueQrDataMap.values());
 
-            console.log("Filtered unique QR Data:", qrDataToDelete);
-
             // Delete the QR data
             const deleteResult = await Qrdata.deleteMany(
                 { uniqueid: { $in: uniqueIds } }
             );
-
-            console.log("Delete result:", deleteResult);
 
             if (deleteResult.deletedCount === 0) {
                 throw new Error("Failed to delete QR data");
