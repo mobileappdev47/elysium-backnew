@@ -12,6 +12,9 @@ const salesOrderSchema = new mongoose.Schema(
         challannumber: {
             type: String,
         },
+        lastchallannumber: {
+            type: String,
+        },
         customername: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Customername",
