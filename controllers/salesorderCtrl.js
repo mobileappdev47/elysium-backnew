@@ -60,7 +60,7 @@ const getSalesOrders = asyncHandler(async (req, res) => {
             query.package = package;
         }
         if (ordernumber) {
-            query.ordernumber = ordernumber;
+            query.ordernumber = { $regex: new RegExp(ordernumber, 'i') };
         }
 
         // Fetch sales orders with sorting by creation date in descending order
@@ -297,7 +297,7 @@ const checkSameSalesOrder = asyncHandler(async (req, res) => {
 
         // Create a map to count the occurrence of each order ID
         const orderMap = new Map();
-        
+
         orders.forEach(order => {
             order.cancelpending.forEach(product => {
                 if (ids.includes(product._id)) {
@@ -341,21 +341,58 @@ const getLastSalesOrder = asyncHandler(async (req, res) => {
 
 const getLastUpdatedCRTPendingOrder = asyncHandler(async (req, res) => {
     try {
-        // Find the last sales order
-        const lastSalesOrder = await SalesOrder.findOne({ package: 'CRT Pending' })
-            .sort({ createdAt: -1 }) // Sort by createdAt date in descending order
+        // Find all sales orders with package 'CRT Pending'
+        const salesOrders = await SalesOrder.find({ package: { $in: ['CRT Pending', 'PKG Done'] } });
 
-        // Check if a sales order exists
-        if (!lastSalesOrder) {
+        // Check if sales orders exist
+        if (salesOrders.length === 0) {
             return res.status(404).json({ success: false, code: 404, message: "No sales orders found" });
         }
 
-        // Return the last sales order
-        res.status(200).json({ success: true, code: 200, lastSalesOrder });
+        // Extract the numerical part of the challannumber and find the one with the highest challannumber
+        let lastSalesOrder = null;
+        let highestChallanNumber = -1;
+
+        salesOrders.forEach(order => {
+            const currentChallanNumber = parseInt(order.challannumber.split('-')[1]);
+            if (currentChallanNumber > highestChallanNumber) {
+                highestChallanNumber = currentChallanNumber;
+                lastSalesOrder = order;
+            }
+        });
+
+        // Return the sales order with the highest challannumber
+        res.status(200).json({
+            success: true,
+            code: 200,
+            lastSalesOrder
+        });
     } catch (error) {
         res.status(400).json({ success: false, code: 400, error: error.message });
     }
 });
+
+const updateAllChallanNum = asyncHandler(async (req, res) => {
+    try {
+        const { lastchallannumber } = req.body;
+
+        if (!lastchallannumber) {
+            return res.status(400).json({ message: 'lastchallannumber and updateData are required' });
+        }
+
+        const result = await SalesOrder.updateMany(
+            { lastchallannumber },
+        );
+
+        res.status(200).json({
+            message: 'Sales orders updated successfully',
+            matchedCount: result.matchedCount,
+            modifiedCount: result.modifiedCount,
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'An error occurred', error: error.message });
+    }
+})
 
 const updateSalesOrder = asyncHandler(async (req, res) => {
     try {
@@ -556,7 +593,11 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
             );
 
             if (deleteResult.deletedCount === 0) {
-                throw new Error("Failed to delete QR data");
+                return res.status(404).json({
+                    success: false,
+                    code: 404,
+                    message: `Failed to Order Closed`
+                });
             }
 
             // Add only the unique deleted QR data to orderedproduct in salesOrder
@@ -691,6 +732,6 @@ const deleteSalesOrder = asyncHandler(async (req, res) => {
 
 module.exports = {
     createSalesOrder, getSalesOrders, generateExcelFile, getCustomerNamesAndIds, getSingleSalesOrder, getSalesFromUniquid, getSalesWithCancelPending,
-    checkSameSalesOrder, getLastSalesOrder, getLastUpdatedCRTPendingOrder,
+    checkSameSalesOrder, getLastSalesOrder, getLastUpdatedCRTPendingOrder, updateAllChallanNum,
     updateSalesOrder, doneUpdateSalesOrder, updateSalesOrderCrt, deletePendingProduct, deleteSalesOrder
 }
