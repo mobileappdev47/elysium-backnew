@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Qrdata = require('../models/qrdataModel');
 const Addstock = require('../models/addStockModel')
 const xlsx = require('xlsx')
+const moment = require('moment')
 
 const createQrData = asyncHandler(async (req, res) => {
     try {
@@ -530,6 +531,74 @@ const generateExcelFile = async () => {
     }
 };
 
+const generateExcelFileWithLocation = async () => {
+    try {
+        // Fetch data from Qrdata model where islocation is true
+        const qrdata = await Qrdata.find({ islocation: true }).sort({ updatedAt: -1 });
+
+        // If no data found, throw an error
+        if (!qrdata || qrdata.length === 0) {
+            throw new Error('No data found');
+        }
+
+        // Prepare the data for the worksheet
+        const jsonData = qrdata.map(data => {
+            let fromLocation = '';
+            let toLocation = '';
+            if (data.palsanafactory) {
+                fromLocation = 'Pandesra Office';
+                toLocation = 'Palsana Factory';
+            } else if (data.pandesraoffice) {
+                fromLocation = 'Palsana Factory';
+                toLocation = 'Pandesra Office';
+            }
+            return {
+                'uniqueid': data.uniqueid,
+                'date': moment(data.locationdate).format('DD, MMM YYYY | hh : mm A'),
+                'jobcardnum': data.jobcardnum,
+                'ProductName': data.productname,
+                'Description': data.description,
+                'InchSize': data.inchsize,
+                'MeterQty': data.meterqty,
+                'RollQty': data.rollqty,
+                'TotalMtr': data.meterqty * data.rollqty, // Calculate total meter based on meterqty and rollqty
+                'FromLocation': fromLocation, // Add the from location field
+                'ToLocation': toLocation 
+            };
+        });
+
+        // Create a new workbook and add the data
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.json_to_sheet(jsonData);
+
+        // Set column headers
+        ws['!cols'] = [
+            { wch: 20 }, // uniqueid
+            { wch: 20 }, // date
+            { wch: 20 }, // jobcardnum
+            { wch: 20 }, // ProductName
+            { wch: 30 }, // Description
+            { wch: 10 }, // InchSize
+            { wch: 10 }, // MeterQty
+            { wch: 10 }, // RollQty
+            { wch: 15 }, // TotalMtr
+            { wch: 20 }  // Location
+        ];
+
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(wb, ws, 'Qr Data');
+
+        // Write the workbook to a buffer
+        const excelBuffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        return excelBuffer;
+    } catch (error) {
+        // Log the error for debugging
+        console.error(error);
+        throw new Error('Failed to generate Excel file');
+    }
+};
+
 const getQrData = asyncHandler(async (req, res) => {
     try {
         const qrdata = await Qrdata.findById(req.params.id);
@@ -667,6 +736,6 @@ const deleteAllQrdata = asyncHandler(async (req, res) => {
 
 module.exports = {
     createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getAggregatedQrData, getLastQrData, getAllQrProductNames,
-    getSpecificProductData, generateExcelFile, getQrData, updateQrData, updateQrDataByUniqueId,
+    getSpecificProductData, generateExcelFile, generateExcelFileWithLocation, getQrData, updateQrData, updateQrDataByUniqueId,
     incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata
 };

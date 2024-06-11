@@ -1,12 +1,13 @@
 const express = require('express');
 const multer = require('multer');
 const { createQrData, getAllQrData, getQrData, updateQrData, deleteQrData,
-     deleteQrDataByQrCodeId, incrementCount, generateExcelFile, createAddstockQrData,
-      getSpecificProductData, addQrDataFromExcel, updateQrDataByUniqueId,
-      getAllQrProductNames,
-      getLastQrData,
-      deleteAllQrdata,
-      getAggregatedQrData} = require('../controllers/qrdataCtrl');
+    deleteQrDataByQrCodeId, incrementCount, generateExcelFile, createAddstockQrData,
+    getSpecificProductData, addQrDataFromExcel, updateQrDataByUniqueId,
+    getAllQrProductNames,
+    getLastQrData,
+    deleteAllQrdata,
+    getAggregatedQrData, 
+    generateExcelFileWithLocation} = require('../controllers/qrdataCtrl');
 const { authMiddleware } = require('../middlerwares/authMiddleware');
 const { createNewQrDataFromExisting } = require('../controllers/qrdataCtrl');
 
@@ -29,6 +30,21 @@ router.get('/download', async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 });
+router.get('/locationchange', async (req, res) => {
+    try {
+        const excelBuffer = await generateExcelFileWithLocation();
+
+        // Set headers for file download
+        res.setHeader('Content-Disposition', 'attachment; filename="location_change.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Length', excelBuffer.length); // Set content length for efficiency
+
+        // Send the Excel buffer as response
+        res.send(excelBuffer);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+})
 router.post('/create', authMiddleware, createQrData);
 router.post('/createcutroll/:uniqueid/:id', authMiddleware, createNewQrDataFromExisting);
 router.post('/fromexcel', authMiddleware, upload.single('file'), addQrDataFromExcel);
