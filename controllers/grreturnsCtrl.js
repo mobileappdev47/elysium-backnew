@@ -25,7 +25,7 @@ const createGrretuns = asyncHandler(async (req, res) => {
 const getGrreturns = asyncHandler(async (req, res) => {
     try {
         // Populate both the user and partyname fields
-        const grreturns = await Grreturns.find().populate({
+        const grreturns = await Grreturns.find().sort({ createdAt: -1 }).populate({
             path: 'user',
             select: 'firstname _id'
         }).populate('partyname', 'customername _id');
