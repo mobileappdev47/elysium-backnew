@@ -7,7 +7,9 @@ const { createQrData, getAllQrData, getQrData, updateQrData, deleteQrData,
     getLastQrData,
     deleteAllQrdata,
     getAggregatedQrData, 
-    generateExcelFileWithLocation} = require('../controllers/qrdataCtrl');
+    generateExcelFileWithLocation,
+    getQrDataByUniqueIds,
+    deleteArrayQrData} = require('../controllers/qrdataCtrl');
 const { authMiddleware } = require('../middlerwares/authMiddleware');
 const { createNewQrDataFromExisting } = require('../controllers/qrdataCtrl');
 
@@ -57,9 +59,11 @@ router.get('/productname', authMiddleware, getAllQrProductNames)
 router.get('/getqr/:id', authMiddleware, getQrData)
 router.put('/update/:id', authMiddleware, updateQrData)
 router.put('/updatelocation', authMiddleware, updateQrDataByUniqueId)
+router.post('/getfromuniqueid', authMiddleware, getQrDataByUniqueIds)
 router.delete('/delete/:id', authMiddleware, deleteQrData)
 router.delete('/deleteqrdata', authMiddleware, deleteQrDataByQrCodeId)
 router.delete('/alldelete', authMiddleware, deleteAllQrdata)
 router.post('/count', authMiddleware, incrementCount)
+router.delete('/qrdelete', deleteArrayQrData)
 
 module.exports = router;    

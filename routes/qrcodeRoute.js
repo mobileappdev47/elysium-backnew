@@ -1,12 +1,14 @@
 const express = require('express');
-const { createQrcode, getAllQrcode, clearQrData, deleteQrcode } = require('../controllers/qrcodeCtrl');
-
+const { createQrcode, getAllQrcode, clearQrData, deleteQrcode, deleteQrCodesArray } = require('../controllers/qrcodeCtrl');
+const { authMiddleware } = require('../middlerwares/authMiddleware')
 const router = express.Router();
 
 
-router.post('/create', createQrcode);
-router.get('/getall', getAllQrcode);
-router.delete('/clearqr', clearQrData)
-router.delete('/delete/:id', deleteQrcode)
+router.post('/create', authMiddleware, createQrcode);
+router.get('/getall', authMiddleware, getAllQrcode);
+router.delete('/clearqr', authMiddleware, clearQrData)
+router.delete('/delete/:id', authMiddleware, deleteQrcode)
+router.delete('/deletecode/', deleteQrCodesArray)
+
 
 module.exports = router;    

@@ -543,14 +543,16 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
             // Check roll quantity
             for (const product of salesOrder.products) {
                 const productQrEntries = salesOrder.qualityqrs.filter(qr => qr.productName === product.productname);
+                console.log(productQrEntries, 'roll');
+                console.log(product.rollqty, 'rollqty');
 
-                if (product.rollqty !== productQrEntries.length) {
-                    return res.status(400).json({
-                        success: false,
-                        code: 400,
-                        message: `Product roll quantity mismatch for product: ${product.productname}`
-                    });
-                }
+                // if (product.rollqty !== productQrEntries.length) {
+                //     return res.status(400).json({
+                //         success: false,
+                //         code: 400,
+                //         message: `Product roll quantity mismatch for product: ${product.productname}`
+                //     });
+                // }
             }
 
             // Compare the products with the sales order qualityqrs
@@ -566,7 +568,7 @@ const doneUpdateSalesOrder = asyncHandler(async (req, res) => {
                     mismatchedProducts.push(qrProduct.uniqueid);
                 }
             }
-
+            console.log(mismatchedProducts, 'mismatch');
             if (mismatchedProducts.length > 0) {
                 return res.status(400).json({
                     success: false,

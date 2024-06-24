@@ -1,48 +1,51 @@
 const mongoose = require("mongoose"); // Erase if already required
 
-const qrcodeSchema = new mongoose.Schema(
+const basePaperSchema = new mongoose.Schema(
     {
-        date: {
+        inwarddate: {
             type: String,
             required: true,
         },
-        jobcardnum: {
+        place: {
             type: String,
             required: true,
+        },
+        reelnum: {
+            type: String,
+            required: true
+        },
+        weight: {
+            type: String,
+            required: true,
+        },
+        millname: {
+            type: String,
+            required: true,
+        },
+        qualityname: {
+            type: String,
+            required: true
+        },
+        idnumber: {
+            type: String,
+            required: true
         },
         basepaperid: {
             type: String,
             required: true
         },
-        productname: {
+        gsm: {
             type: String,
-            required: true,
+            required: true
         },
-        description: {
+        uniqueid: {
             type: String,
-            required: true,
-            enum: ["Fresh Goods", "Out Cut (<200)", "Odd Cut (200-500)", "Odd Cut (510-999)", "Odd Cut (1000+)"]
-        },
-        meterqty: {
-            type: Number,
             required: true
-        },
-        rollqty: {
-            type: Number,
-            required: true
-        },
-        inchsize: {
-            type: Number,
-            required: true
-        },
-        isspecificqr: {
-            type: Boolean,
-            default: false
         },
         user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
-        },
+        }
     },
     {
         timestamps: true,
@@ -51,4 +54,4 @@ const qrcodeSchema = new mongoose.Schema(
 
 
 
-module.exports = mongoose.model("Qrcode", qrcodeSchema);
+module.exports = mongoose.model("BasePaper", basePaperSchema);

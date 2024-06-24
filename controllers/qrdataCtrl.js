@@ -257,7 +257,7 @@ const getAllQrData = asyncHandler(async (req, res) => {
 
         // Construct the query object based on the provided query parameters
         const query = { iscutroll: { $ne: true } }; // Exclude documents where iscutroll is true
-        
+
         // Add fields to the query if they are present in the request
         if (productname) query.productname = productname;
         if (description) query.description = { $regex: new RegExp(description, 'i') };
@@ -563,7 +563,7 @@ const generateExcelFileWithLocation = async () => {
                 'RollQty': data.rollqty,
                 'TotalMtr': data.meterqty * data.rollqty, // Calculate total meter based on meterqty and rollqty
                 'FromLocation': fromLocation, // Add the from location field
-                'ToLocation': toLocation 
+                'ToLocation': toLocation
             };
         });
 
@@ -667,6 +667,30 @@ const updateQrDataByUniqueId = asyncHandler(async (req, res) => {
     }
 });
 
+const getQrDataByUniqueIds = asyncHandler(async (req, res) => {
+    try {
+        const { uniqueIds } = req.body;
+
+        // Check if uniqueIds is an array
+        if (!Array.isArray(uniqueIds)) {
+            return res.status(400).json({ success: false, code: 400, message: "uniqueIds should be an array" });
+        }
+
+        // Find documents that match the uniqueIds
+        const documents = await Qrdata.find({ uniqueid: { $in: uniqueIds } });
+
+        // Check if any records were found
+        if (documents.length === 0) {
+            return res.status(404).json({ success: false, code: 404, message: 'No records found' });
+        }
+
+        // Return the found documents
+        res.json({ success: true, code: 200, data: documents });
+    } catch (error) {
+        res.status(500).json({ success: false, code: 500, error: error.message });
+    }
+});
+
 const incrementCount = asyncHandler(async (req, res) => {
     try {
         // Extracting the array of IDs from the request body
@@ -733,9 +757,30 @@ const deleteAllQrdata = asyncHandler(async (req, res) => {
     }
 })
 
+const deleteArrayQrData = asyncHandler(async (req, res) => {
+    try {
+        const { ids } = req.body;
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'Invalid IDs array' });
+        }
+
+        const result = await Qrdata.deleteMany({ _id: { $in: ids } });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'No Qrdata found with the provided IDs' });
+        }
+
+        res.status(200).json({ message: 'Qrdata deleted successfully', deletedCount: result.deletedCount });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+})
+
 
 module.exports = {
     createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getAggregatedQrData, getLastQrData, getAllQrProductNames,
-    getSpecificProductData, generateExcelFile, generateExcelFileWithLocation, getQrData, updateQrData, updateQrDataByUniqueId,
-    incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata
+    getSpecificProductData, generateExcelFile, generateExcelFileWithLocation, getQrData, updateQrData, updateQrDataByUniqueId, getQrDataByUniqueIds,
+    incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata, deleteArrayQrData
 };
