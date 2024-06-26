@@ -18,6 +18,7 @@ const salespersonRouter = require('./routes/salespersonRoute.js')
 const grreturnsRouter = require('./routes/grreturnsRoute')
 const basePaperRouter = require('./routes/basePaperRoute.js')
 const basePaperDataRouter = require('./routes/basePaperDataRoute.js')
+const printstockRouter = require('./routes/printstockRoute.js')
 dbConnect();
 
 app.use((req, res, next) => {
@@ -50,6 +51,7 @@ app.use('/api/salesperson', salespersonRouter)
 app.use('/api/grreturns', grreturnsRouter)
 app.use('/api/basepaper', basePaperRouter)
 app.use('/api/basepaperdata', basePaperDataRouter)
+app.use('/api/printstock', printstockRouter)
 
 
 

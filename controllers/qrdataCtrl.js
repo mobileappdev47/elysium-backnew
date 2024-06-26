@@ -397,6 +397,16 @@ const getLastQrData = asyncHandler(async (req, res) => {
             }
         }
 
+        // If no valid QR data found, check for the last created QR data with a unique ID longer than 10 characters
+        if (!qrdata) {
+            for (const data of qrdataList) {
+                if (data.uniqueid.length > 10) {
+                    qrdata = data;
+                    break;
+                }
+            }
+        }
+
         if (!qrdata) {
             // If no valid QR data found, return an appropriate response
             return res.status(404).json({ success: false, code: 404, message: "No valid QR data found" });
@@ -638,7 +648,7 @@ const updateQrData = asyncHandler(async (req, res) => {
 
 const updateQrDataByUniqueId = asyncHandler(async (req, res) => {
     try {
-        const { uniqueIds, palsanafactory, pandesraoffice } = req.body;
+        const { uniqueIds, palsanafactory, pandesraoffice, productname } = req.body;
 
         // Check if uniqueIds is an array
         if (!Array.isArray(uniqueIds)) {
@@ -651,6 +661,7 @@ const updateQrDataByUniqueId = asyncHandler(async (req, res) => {
             {
                 palsanafactory,
                 pandesraoffice,
+                productname,
                 islocation: true,
                 locationdate: new Date() // Set locationdate to the current date
             }
@@ -778,9 +789,30 @@ const deleteArrayQrData = asyncHandler(async (req, res) => {
     }
 })
 
+const deleteByUniqueId = asyncHandler(async (req, res) => {
+    try {
+        const { uniqueids } = req.body;
+
+        if (!Array.isArray(uniqueids) || uniqueids.length === 0) {
+            return res.status(400).json({ error: 'Invalid uniqueid array' });
+        }
+
+        const result = await Qrdata.deleteMany({ uniqueid: { $in: uniqueids } });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'No PrintStock found with the provided uniqueids' });
+        }
+
+        res.status(200).json({ message: 'QRdata deleted successfully', deletedCount: result.deletedCount });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 
 module.exports = {
     createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getAggregatedQrData, getLastQrData, getAllQrProductNames,
     getSpecificProductData, generateExcelFile, generateExcelFileWithLocation, getQrData, updateQrData, updateQrDataByUniqueId, getQrDataByUniqueIds,
-    incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata, deleteArrayQrData
+    incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata, deleteArrayQrData, deleteByUniqueId
 };
