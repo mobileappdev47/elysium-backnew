@@ -799,10 +799,6 @@ const deleteByUniqueId = asyncHandler(async (req, res) => {
 
         const result = await Qrdata.deleteMany({ uniqueid: { $in: uniqueids } });
 
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ error: 'No PrintStock found with the provided uniqueids' });
-        }
-
         res.status(200).json({ message: 'QRdata deleted successfully', deletedCount: result.deletedCount });
     } catch (error) {
         console.error(error);
