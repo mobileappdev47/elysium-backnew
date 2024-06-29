@@ -68,6 +68,10 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             required: true,
         },
+        basepaper: {
+            type: Boolean,
+            required: true
+        },
         role: {
             type: String,
             default: "user",

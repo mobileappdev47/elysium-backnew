@@ -2,10 +2,9 @@ const mongoose = require("mongoose"); // Erase if already required
 
 const addstockSchema = new mongoose.Schema(
     {
-        // date: {
-        //     type: String,
-        //     required: true,
-        // },
+        date: {
+            type: String,
+        },
         // jobcardnum: {
         //     type: Number,
         //     required: true,

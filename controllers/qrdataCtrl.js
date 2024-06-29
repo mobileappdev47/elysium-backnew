@@ -322,6 +322,69 @@ const getAllQrData = asyncHandler(async (req, res) => {
     }
 });
 
+const getFilteredQrData = asyncHandler(async (req, res) => {
+    try {
+        // Extract the period query parameter from the request
+        const { period } = req.query;
+
+        // Calculate date range based on the 'period' query parameter
+        const currentDate = new Date();
+        let startDate;
+
+        if (period === 'week') {
+            startDate = new Date();
+            startDate.setDate(currentDate.getDate() - 7);
+        } else if (period === 'month') {
+            startDate = new Date();
+            startDate.setMonth(currentDate.getMonth() - 1);
+        } else if (period === 'annual') {
+            startDate = new Date();
+            startDate.setFullYear(currentDate.getFullYear() - 1);
+        } else {
+            return res.status(400).json({ success: false, code: 400, error: 'Invalid period parameter' });
+        }
+
+        // Fetch data within the date range
+        const qrdataList = await Qrdata.find({
+            createdAt: {
+                $gte: startDate.toISOString(),
+                $lte: currentDate.toISOString()
+            }
+        });
+
+        // Process the data to group by productname
+        const groupedData = qrdataList.reduce((acc, item) => {
+            const productname = item.productname;
+
+            if (!acc[productname]) {
+                acc[productname] = {
+                    productname,
+                    totalRollQty: 0,
+                    lastCreatedAt: item.createdAt,
+                    count: 0
+                };
+            }
+
+            acc[productname].totalRollQty += item.rollqty;
+            acc[productname].count += 1;
+
+            if (new Date(item.createdAt) > new Date(acc[productname].lastCreatedAt)) {
+                acc[productname].lastCreatedAt = item.createdAt;
+            }
+
+            return acc;
+        }, {});
+
+        // Convert the result to an array
+        const result = Object.values(groupedData);
+
+        // Respond with the grouped data
+        res.json({ success: true, code: 200, data: result });
+    } catch (error) {
+        res.status(500).json({ success: false, code: 500, error: error.message });
+    }
+});
+
 const getAggregatedQrData = asyncHandler(async (req, res) => {
     try {
         // Aggregate the data based on the specified fields
@@ -808,7 +871,7 @@ const deleteByUniqueId = asyncHandler(async (req, res) => {
 
 
 module.exports = {
-    createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getAggregatedQrData, getLastQrData, getAllQrProductNames,
+    createQrData, createNewQrDataFromExisting, addQrDataFromExcel, createAddstockQrData, getAllQrData, getFilteredQrData, getAggregatedQrData, getLastQrData, getAllQrProductNames,
     getSpecificProductData, generateExcelFile, generateExcelFileWithLocation, getQrData, updateQrData, updateQrDataByUniqueId, getQrDataByUniqueIds,
     incrementCount, deleteQrData, deleteQrDataByQrCodeId, deleteAllQrdata, deleteArrayQrData, deleteByUniqueId
 };

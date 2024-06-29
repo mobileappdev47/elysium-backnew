@@ -118,6 +118,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 allsalesorder: findUser.allsalesorder,
                 orderdispatch:findUser.orderdispatch,
                 orderpending: findUser.orderpending,
+                basepaper: findUser.basepaper,
                 role: findUser.role,
                 token: generateToken(findUser._id),
             },

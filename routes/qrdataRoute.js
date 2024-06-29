@@ -10,7 +10,8 @@ const { createQrData, getAllQrData, getQrData, updateQrData, deleteQrData,
     generateExcelFileWithLocation,
     getQrDataByUniqueIds,
     deleteArrayQrData,
-    deleteByUniqueId} = require('../controllers/qrdataCtrl');
+    deleteByUniqueId,
+    getFilteredQrData} = require('../controllers/qrdataCtrl');
 const { authMiddleware } = require('../middlerwares/authMiddleware');
 const { createNewQrDataFromExisting } = require('../controllers/qrdataCtrl');
 
@@ -53,6 +54,7 @@ router.post('/createcutroll/:uniqueid/:id', authMiddleware, createNewQrDataFromE
 router.post('/fromexcel', authMiddleware, upload.single('file'), addQrDataFromExcel);
 router.post('/createaddstock', authMiddleware, createAddstockQrData)
 router.get('/getall', authMiddleware, getAllQrData);
+router.get('/getchart', authMiddleware, getFilteredQrData);
 router.get('/getstockall', authMiddleware, getAggregatedQrData);
 router.get('/getlast', authMiddleware, getLastQrData);
 router.get('/getproduct', authMiddleware, getSpecificProductData);

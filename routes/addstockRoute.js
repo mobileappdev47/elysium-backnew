@@ -2,7 +2,8 @@ const express = require('express');
 const multer = require('multer')
 const { createAddstock, getAddstocks, deleteAddstock, getOutofStocks, addDataFromExcel,
      updateAddstock, getInchSizeByProdAndDesc, getAllProductNames, generateExcelFile,
-      getRollwiseAddstocks, getAvailableAddstocks, deleteAllAddstock } = require('../controllers/addstockCtrl');
+      getRollwiseAddstocks, getAvailableAddstocks, deleteAllAddstock, 
+      getAggregatedStocks} = require('../controllers/addstockCtrl');
 
 const router = express.Router();
 
@@ -12,6 +13,7 @@ const upload = multer({ dest: 'uploads/' });
 router.post('/create', createAddstock);
 router.post('/fromexcel', upload.single('file'), addDataFromExcel);
 router.get('/getall', getAddstocks);
+router.get('/getstocks', getAggregatedStocks)
 router.put('/update', updateAddstock)
 router.get('/getoutofstock', getOutofStocks);
 router.get('/getinch-product', getInchSizeByProdAndDesc);

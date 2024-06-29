@@ -143,51 +143,61 @@ const getAddstocks = asyncHandler(async (req, res) => {
     try {
         let stockQuery = {};
 
-        // Check if there are any query parameters
         const queryParams = Object.keys(req.query);
 
-        // If there are query parameters, construct the query based on them
         if (queryParams.length > 0) {
-            // Check if there's a query parameter for productname
             if (req.query.productname) {
-                // Add productname to the query
                 stockQuery.productname = req.query.productname;
             }
-            // Check if there's a query parameter for description
             if (req.query.description) {
-                // Add description to the query
-                // Construct a case-insensitive search query for descriptions containing the provided string
                 stockQuery.description = { $regex: req.query.description, $options: 'i' };
             }
-            // Check if there's a query parameter for inchsize
             if (req.query.inchsize) {
-                // Add inchsize to the query
                 stockQuery.inchsize = req.query.inchsize;
             }
-            // Check if there's a query parameter for meterqty
             if (req.query.meterqty) {
-                // Add meterqty to the query
                 stockQuery.meterqty = req.query.meterqty;
             }
-            // Check if there's a query parameter for palsanafactory
             if (req.query.palsanafactory) {
-                // Add palsanafactory to the query and convert to boolean
                 stockQuery.palsanafactory = req.query.palsanafactory === 'true';
             }
-            // Check if there's a query parameter for pandesraoffice
             if (req.query.pandesraoffice) {
-                // Add pandesraoffice to the query and convert to boolean
                 stockQuery.pandesraoffice = req.query.pandesraoffice === 'true';
             }
         }
-
-        // Add condition for either rollqty or meterqty not being zero
-        // Example: stockQuery.$or = [{ rollqty: { $ne: 0 } }, { meterqty: { $ne: 0 } }];
-
-        // Find products based on the constructed query
         const addstocks = await Addstock.find(stockQuery).sort({ updatedAt: -1 });
 
         res.status(200).json({ success: true, code: 200, addstocks });
+    } catch (error) {
+        res.status(400).json({ success: false, code: 400, error: error.message });
+    }
+});
+
+const getAggregatedStocks = asyncHandler(async (req, res) => {
+    try {
+        const aggregationPipeline = [
+            {
+                $group: {
+                    _id: { productname: "$productname", description: "$description" },
+                    totalRollQty: { $sum: "$rollqty" },
+                    totalMeterQty: { $sum: "$meterqty" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    productname: "$_id.productname",
+                    description: "$_id.description",
+                    totalRollQty: 1,
+                    totalMeterQty: 1
+                }
+            },
+            { $sort: { productname: 1, description: 1 } }  // Optional: Sort the results
+        ];
+
+        const aggregatedStocks = await Addstock.aggregate(aggregationPipeline);
+
+        res.status(200).json({ success: true, code: 200, aggregatedStocks });
     } catch (error) {
         res.status(400).json({ success: false, code: 400, error: error.message });
     }
@@ -476,6 +486,6 @@ const deleteAllAddstock = asyncHandler(async (req, res) => {
 
 module.exports = {
     createAddstock, updateAddstock, addDataFromExcel,
-    getAddstocks, getAvailableAddstocks, getRollwiseAddstocks, generateExcelFile, getInchSizeByProdAndDesc,
+    getAddstocks, getAggregatedStocks, getAvailableAddstocks, getRollwiseAddstocks, generateExcelFile, getInchSizeByProdAndDesc,
     getAllProductNames, getOutofStocks, deleteAddstock, deleteAllAddstock
 }
