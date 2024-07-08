@@ -4,11 +4,11 @@ const { authMiddleware, isAdmin } = require('../middlerwares/authMiddleware');
 
 const router = express.Router();
 
-router.post('/create', authMiddleware, isAdmin, createBasePaper);
-router.get('/getall', authMiddleware, isAdmin, getAllBasePaper)
-router.get('/getlast', authMiddleware, isAdmin, getLastBasePaperData)
-router.delete('/delete/:id', authMiddleware, isAdmin, deleteBasePaperData)
-router.delete('/deleteall', authMiddleware, isAdmin, deleteAllBasePaperData)
+router.post('/create', authMiddleware, createBasePaper);
+router.get('/getall', authMiddleware,  getAllBasePaper)
+router.get('/getlast', authMiddleware,  getLastBasePaperData)
+router.delete('/delete/:id', authMiddleware,  deleteBasePaperData)
+router.delete('/deleteall', authMiddleware,  deleteAllBasePaperData)
 router.delete('/deletebyid', deleteBasePapersByIds)
 
 

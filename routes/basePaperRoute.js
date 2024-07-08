@@ -4,9 +4,9 @@ const { authMiddleware, isAdmin } = require('../middlerwares/authMiddleware');
 
 const router = express.Router();
 
-router.post('/create', authMiddleware, isAdmin, createBasePaper);
-router.get('/getall', authMiddleware, isAdmin, getAllBasePaper)
-router.get('/getlast', authMiddleware, isAdmin, getLastBasePaper)
+router.post('/create', authMiddleware, createBasePaper);
+router.get('/getall', authMiddleware,  getAllBasePaper)
+router.get('/getlast', authMiddleware,  getLastBasePaper)
 router.get('/download', async (req, res) => {
     try {
         const excelBuffer = await generateBasePaperExcelFile();
