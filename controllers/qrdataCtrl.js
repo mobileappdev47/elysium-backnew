@@ -803,9 +803,9 @@ const deleteQrDataByQrCodeId = asyncHandler(async (req, res) => {
         const { qrcodeid } = req.body;
 
         // Check if qrcodeids array is provided
-        if (!Array.isArray(qrcodeid) || qrcodeid.length === 0) {
-            return res.status(400).json({ success: false, code: 400, error: "qrcodeids array is required" });
-        }
+        // if (!Array.isArray(qrcodeid) || qrcodeid.length === 0) {
+        //     return res.status(400).json({ success: false, code: 400, error: "qrcodeids array is required" });
+        // }
 
         // Delete documents where qrcodeid matches any in the provided array
         const result = await Qrdata.deleteMany({ qrcodeid: { $in: qrcodeid } });
