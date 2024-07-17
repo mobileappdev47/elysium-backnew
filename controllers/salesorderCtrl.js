@@ -341,13 +341,8 @@ const getLastSalesOrder = asyncHandler(async (req, res) => {
 
 const getLastUpdatedCRTPendingOrder = asyncHandler(async (req, res) => {
     try {
-        // Find all sales orders with package 'CRT Pending'
+        // Find all sales orders with package 'CRT Pending' or 'PKG Done'
         const salesOrders = await SalesOrder.find({ package: { $in: ['CRT Pending', 'PKG Done'] } });
-
-        // Check if sales orders exist
-        if (salesOrders.length === 0) {
-            return res.status(404).json({ success: false, code: 404, message: "No sales orders found" });
-        }
 
         // Extract the numerical part of the challannumber and find the one with the highest challannumber
         let lastSalesOrder = null;
@@ -361,7 +356,12 @@ const getLastUpdatedCRTPendingOrder = asyncHandler(async (req, res) => {
             }
         });
 
-        // Return the sales order with the highest challannumber
+        // If no lastSalesOrder is found, set it to an empty object
+        if (!lastSalesOrder) {
+            lastSalesOrder = {};
+        }
+
+        // Return the sales order with the highest challannumber or an empty object if not found
         res.status(200).json({
             success: true,
             code: 200,
